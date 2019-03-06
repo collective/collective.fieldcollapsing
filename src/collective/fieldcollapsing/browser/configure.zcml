@@ -1,0 +1,53 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:browser="http://namespaces.zope.org/browser"
+    xmlns:plone="http://namespaces.plone.org/plone"
+    i18n_domain="collective.fieldcollapsing">
+
+  <!-- Set overrides folder for Just-a-Bunch-Of-Templates product -->
+  <include package="z3c.jbot" file="meta.zcml" />
+  <browser:jbot
+      directory="overrides"
+      layer="collective.fieldcollapsing.interfaces.ICollectiveFieldcollapsingLayer"
+      />
+
+  <!-- Publish static files -->
+  <plone:static
+      name="collective.fieldcollapsing"
+      type="plone"
+      directory="static"
+      />
+
+     <!-- -*- extra stuff goes here -*- -->
+    <adapter
+      factory="plone.app.contentlisting.contentlisting.ContentListing"
+      for="ZTUtils.LazyFilter"
+      />
+
+  <browser:page
+    name="querybuilderresults"
+    class=".querybuilder.QueryBuilder"
+    permission="zope2.View"
+    for="*"
+    layer="collective.fieldcollapsing.interfaces.ICollectiveFieldcollapsingLayer"
+    />
+
+  <browser:page
+    name="querybuilder_html_results"
+    class=".querybuilder.QueryBuilder"
+    permission="zope2.View"
+    attribute="html_results"
+    for="*"
+    layer="collective.fieldcollapsing.interfaces.ICollectiveFieldcollapsingLayer"
+    />
+
+  <browser:page
+    name="querybuildernumberofresults"
+    class=".querybuilder.QueryBuilder"
+    permission="zope2.View"
+    for="*"
+    attribute="number_of_results"
+    layer="collective.fieldcollapsing.interfaces.ICollectiveFieldcollapsingLayer"
+    />
+
+</configure>

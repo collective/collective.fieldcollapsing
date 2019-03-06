@@ -1,0 +1,5 @@
+==========================
+collective.fieldcollapsing
+==========================
+
+User documentation
