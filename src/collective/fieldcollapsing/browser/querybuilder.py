@@ -2,6 +2,7 @@
 
 import json
 import logging
+import Missing
 
 from operator import itemgetter
 from plone import api
@@ -39,10 +40,9 @@ class FieldCollapser(object):
         self._base_results = set()
         self.query = query
         self.collapse_on = self.query.get('collapse_on', None)
-        self.collapse_on_parent = self.collapse_on == 'parent'
-        self.collapse = not ( not self.collapse_on )
+        self.collapse_on_parent = self.collapse_on == 'getParent'
   
-    def filterByParent(self, brain):
+    def collapse(self, brain):
         base_brain = brain
         base_path = path_ = brain.getPath()
         path_sep = path_.split("/")
@@ -54,7 +54,7 @@ class FieldCollapser(object):
                 return True
         else:
             field_value = getattr(brain, self.collapse_on, None)
-            if field_value is None:
+            if field_value is None or field_value is Missing.Value:
                 return True
             if hasattr(field_value, '__iter__'):
                 set_diff = set(field_value) - self._base_results
@@ -155,7 +155,7 @@ class QueryBuilder(BaseQueryBuilder):
             )
             results = LazyMap(
                 lambda x:x,
-                LazyFilter(results, test=fc.filterByParent),
+                LazyFilter(results, test=fc.collapse),
                 length=results._len,
                 actual_result_count=results.actual_result_count
             )

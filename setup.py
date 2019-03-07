@@ -40,8 +40,8 @@ setup(
     zip_safe=False,
     install_requires=[
         # -*- Extra requirements: -*-
-        'plone.api>=1.8.4',
-        'Products.GenericSetup>=1.8.2',
+        'plone.api',
+        'Products.GenericSetup',
         'setuptools',
         'z3c.jbot',
     ],

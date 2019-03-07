@@ -13,11 +13,13 @@
   -->
   <!--<includeDependencies package="." />-->
 
-  <include package=".browser" />
-  <include package="plone.behavior" file="meta.zcml"/>
 
+  <include file="meta.zcml"/>
   <include file="permissions.zcml" />
   <include file="upgrades.zcml" />
+
+  <include package=".browser" />
+  <include package="plone.behavior" file="meta.zcml"/>
 
   <genericsetup:registerProfile
       name="default"
