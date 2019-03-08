@@ -18,7 +18,10 @@ from zope.schema.vocabulary import SimpleVocabulary, SimpleTerm
 from zope.schema.interfaces import IContextSourceBinder
 from zope.schema.vocabulary import SimpleVocabulary
 from Products.CMFCore.utils import getToolByName
+from Products.CMFPlone.interfaces.syndication import ISyndicatable
 from zope.interface import directlyProvides
+
+from collective.fieldcollapsing import _
 
 
 def collapse_on_vocab(context):
@@ -29,14 +32,17 @@ def collapse_on_vocab(context):
 directlyProvides(collapse_on_vocab, IContextSourceBinder)
 
 
-@provider(IFormFieldProvider)
+@provider(IFormFieldProvider, ISyndicatable)
 class ICollectionFieldCollapser(model.Schema):
     """Model based Dexterity Type"""
 
     collapse_on = schema.Choice(
-        title=(u"Collapse on"),
+        title=_(u"Collapse on"),
         source=collapse_on_vocab,
         required=False,
+        description=_(
+            u"Select the field, which the results will collapse on and return "
+            u"the first of each collapsed set")
     )
     directives.order_after(collapse_on='ICollection.query')
 

@@ -49,7 +49,7 @@ class FieldCollapser(object):
         
         if self.collapse_on_parent:
             if brain.Type != 'Plone Site':
-                base_path = "/".join(path_sep[:-1])
+                field_value = "/".join(path_sep[:-1])
             else:
                 return True
         else:
@@ -61,9 +61,9 @@ class FieldCollapser(object):
                 if len(set_diff) > 0:
                     self._base_results.update(set_diff)
                     return True
-            if field_value not in self._base_results:
-                self._base_results.add(field_value)
-                return True
+        if field_value not in self._base_results:
+            self._base_results.add(field_value)
+            return True
         return False
             
 
