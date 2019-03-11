@@ -25,6 +25,7 @@ from ZTUtils import LazyFilter
 from plone.app.querystring.querybuilder import QueryBuilder as BaseQueryBuilder
 
 from collective.fieldcollapsing import _
+from collective.fieldcollapsing import logger
 
 
 try:
@@ -46,7 +47,7 @@ class FieldCollapser(object):
         base_brain = brain
         base_path = path_ = brain.getPath()
         path_sep = path_.split("/")
-        
+
         if self.collapse_on_parent:
             if brain.Type != 'Plone Site':
                 field_value = "/".join(path_sep[:-1])
@@ -61,26 +62,16 @@ class FieldCollapser(object):
                 if len(set_diff) > 0:
                     self._base_results.update(set_diff)
                     return True
+                return False
         if field_value not in self._base_results:
             self._base_results.add(field_value)
             return True
         return False
-            
 
         if base_path not in self._base_results:
             self._base_results.add(base_path)
             return True
         return False
-
-
-class LazyFieldCollapser(LazyFilter):
-    
-    def __init__(self, seq, query={'collapse_on': None}, **kwargs):
-        self.collapser = FieldCollapser(query=query)
-        if self.collapser.collapse:
-            test = kwargs.get('test', self.collapser.filterByParent)
-            kwargs['test'] = test
-        super(LazyFieldCollapser, self).__init__(seq=seq, **kwargs)
 
 
 class QueryBuilder(BaseQueryBuilder):
@@ -129,10 +120,17 @@ class QueryBuilder(BaseQueryBuilder):
         if 'path' not in parsedquery:
             parsedquery['path'] = {'query': ''}
 
+        collapse_on = self.request.get(
+            'collapse_on',
+            getattr(self.context, 'collapse_on', None)
+        )
         if isinstance(custom_query, dict) and custom_query:
             # Update the parsed query with an extra query dictionary. This may
             # override the parsed query. The custom_query is a dictonary of
             # index names and their associated query values.
+            collapse_on = custom_query.get('collapse_on', collapse_on)
+            if collapse_on is not None:
+                del custom_query['collapse_on']
             parsedquery.update(custom_query)
             empty_query = False
 
@@ -145,10 +143,6 @@ class QueryBuilder(BaseQueryBuilder):
                     and results.actual_result_count > limit:
                 results.actual_result_count = limit
 
-        collapse_on = self.request.get(
-            'collapse_on',
-            getattr(self.context, 'collapse_on', None)
-        )
         if collapse_on is not None:
             fc = FieldCollapser(
                 query={'collapse_on': collapse_on}
