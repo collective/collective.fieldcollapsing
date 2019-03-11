@@ -6,33 +6,26 @@
 collective.fieldcollapsing
 ==========================
 
-Tell me what your product does
+This add-ons provides Field Collapsing feature to Plone through a behavior provided to the Collection Content Type.
+
+The Field Collapsing function allows search results collapsed into a single entry based on field values.
+The collapsing is done by selecting only the top sorted document per collapse key.
+
 
 Features
 --------
 
-- Can be bullet points
-
-
-Examples
---------
-
-This add-on can be seen in action at the following sites:
-- Is there a page on the internet where everybody can see the features?
+- Providesz Field Collapsing behavior for the ***Collection Content Type***
+- Group similar results together based on the selected metadata field.
+- Retrive the most relevent hits first.
+- Retrive only one result from a whole set of resources is included in the results list
 
 
 Documentation
 -------------
 
-Full documentation for end users can be found in the "docs" folder, and is also available online at http://docs.plone.org/foo/bar
-
-
-Translations
-------------
-
-This product has been translated into
-
-- Klingon (thanks, K'Plai)
+This works similar to Elastic Search field collapsing function as explained
+[here](https://www.rea-group.com/blog/using-elasticsearch-field-collapsing-to-group-related-search-results/)
 
 
 Installation
@@ -51,19 +44,16 @@ Install collective.fieldcollapsing by adding it to your buildout::
 and then running ``bin/buildout``
 
 
+Afterwards, install the add-on via Add-on Controlpanel
+
+Enable the Field Collapsing behavior on the Collection Content Type by visitng Dexterity Content Types Controlpanel.
+
+
 Contribute
 ----------
 
 - Issue Tracker: https://github.com/collective/collective.fieldcollapsing/issues
 - Source Code: https://github.com/collective/collective.fieldcollapsing
-- Documentation: https://docs.plone.org/foo/bar
-
-
-Support
--------
-
-If you are having issues, please let us know.
-We have a mailing list located at: project@example.com
 
 
 License

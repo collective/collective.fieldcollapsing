@@ -41,9 +41,10 @@ setup(
     install_requires=[
         # -*- Extra requirements: -*-
         'plone.api',
-        'Products.GenericSetup',
+        'plone.app.querystring',
         'setuptools',
         'z3c.jbot',
+        'Products.GenericSetup',
     ],
     extras_require={
         'test': [
