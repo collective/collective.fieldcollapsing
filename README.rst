@@ -6,17 +6,22 @@
 collective.fieldcollapsing
 ==========================
 
-This add-on provides Field Collapsing feature to Plone through a behaviour provided to the **Collection Content Type**.
+This add-on provides Field Collapsing feature to Plone through a behaviour provided to the **Collection Content Type** similar to field collapsing in ElasticSearch.
 
-The Field Collapsing function allows search results collapsed into a single entry based on field values.
-The collapsing is done by selecting only the top sorted document per collapse key.
+A Collection can have one of more field set to collapse on. This groups or de-deplicates the result list of the collection such that only the first result with a given values of that set of fields is shown. All subsequent matching results won't appear in the list. There is limited support for path based collapsing also such as collapsing on the parent.
 
+For example
+
+- if you have content types for companies and employees
+- you wanted to have a custom search page to search for companies that had employees with certain skills
+- you could use collective.collectionfilter and collective.fieldcollapsing to provide a search page which let you search details of employees but return only links to companies.
+- you would set collapse_on for the collection to be the custom metadata field "company_id" in this example (or if employees are contained within company objects then use the parent path to collapse on).
 
 Features
 --------
 
 - Provides Field Collapsing behaviour for the **Collection Content Type**
-- Group similar results together based on the selected metadata field.
+- Group similar results together based on the selected metadata fields.
 - Retrieve the most relevant hits first.
 - Retrieve only one result from a whole set of resources is included in the results list
 
@@ -45,7 +50,7 @@ and then running ``bin/buildout``
 
 Afterwards, install the add-on via Add-on Control panel
 
-Enable the Field Collapsing behaviour on the Collection Content Type by visiting Dexterity Content Types Control panel.
+Field Collapsing behaviour will automatically be installed on the default Collection Content Type but custom collections can have it added by visiting Dexterity Content Types Control panel.
 
 
 Contribute
