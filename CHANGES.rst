@@ -7,3 +7,5 @@ Changelog
 
 - Initial release.
   [b4oshany]
+- Add tests
+  [b4oshany]

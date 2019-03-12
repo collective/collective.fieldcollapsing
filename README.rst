@@ -49,6 +49,12 @@ Afterwards, install the add-on via Add-on Controlpanel
 Enable the Field Collapsing behavior on the Collection Content Type by visitng Dexterity Content Types Controlpanel.
 
 
+TODOs
+----------
+- Add support for Live Preview of the field collapsing feature
+- Add multiselect support, whereby more than one field can be collapsed on.
+
+
 Contribute
 ----------
 
