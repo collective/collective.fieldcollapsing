@@ -16,6 +16,7 @@ For example
 - you wanted to have a custom search page to search for companies that had employees with certain skills
 - you could use collective.collectionfilter and collective.fieldcollapsing to provide a search page which let you search details of employees but return only links to companies.
 - you would set collapse_on for the collection to be the custom metadata field "company_id" in this example (or if employees are contained within company objects then use the parent path to collapse on).
+- In order for this search page to return the Comany object you could use collective.listingviews to customise the results layout to link to related company as the default results will still list the top employee hit per company.
 
 Features
 --------
@@ -53,6 +54,7 @@ Afterwards, install the add-on via Add-on Control panel
 Field Collapsing behaviour will automatically be installed on the default Collection Content Type but custom collections can have it added by visiting Dexterity Content Types Control panel.
 
 
+
 Contribute
 ----------
 
@@ -64,3 +66,8 @@ License
 -------
 
 The project is licensed under the GPLv2.
+
+Thanks
+------
+
+Special thanks to Multicultural Health Communication Service of NSW for sponsoring the inital work on this plugin 
