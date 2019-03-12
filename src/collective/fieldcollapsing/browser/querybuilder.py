@@ -29,9 +29,11 @@ from collective.fieldcollapsing import logger
 
 
 try:
+    from ZTUtils.Lazy import LazyCat
     from ZTUtils.Lazy import LazyMap
 except ImportError:
     # bbb import for Zope2
+    from Products.ZCatalog.Lazy import LazyCat
     from Products.ZCatalog.Lazy import LazyMap
 
 
@@ -147,12 +149,19 @@ class QueryBuilder(BaseQueryBuilder):
             fc = FieldCollapser(
                 query={'collapse_on': collapse_on}
             )
-            results = LazyMap(
-                lambda x:x,
-                LazyFilter(results, test=fc.collapse),
-                length=results._len,
-                actual_result_count=results.actual_result_count
-            )
+            if type(results).__name__ == 'LazyCat':
+                results = LazyCat(
+                    LazyFilter(results, test=fc.collapse),
+                    length=results._len,
+                    actual_result_count=results.actual_result_count
+                )
+            else:
+                results = LazyMap(
+                    lambda x:x,
+                    LazyFilter(results, test=fc.collapse),
+                    length=results._len,
+                    actual_result_count=results.actual_result_count
+                )
 
         if not brains:
             results = IContentListing(results)
