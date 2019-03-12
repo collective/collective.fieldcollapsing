@@ -43,7 +43,7 @@ class FieldCollapser(object):
         self._base_results = set()
         self.query = query
         self.collapse_on = self.query.get('collapse_on', None)
-        self.collapse_on_parent = self.collapse_on == 'getParent'
+        self.collapse_on_parent = self.collapse_on == 'ParentContainer'
   
     def collapse(self, brain):
         base_brain = brain
@@ -130,8 +130,8 @@ class QueryBuilder(BaseQueryBuilder):
             # Update the parsed query with an extra query dictionary. This may
             # override the parsed query. The custom_query is a dictonary of
             # index names and their associated query values.
-            collapse_on = custom_query.get('collapse_on', collapse_on)
-            if collapse_on is not None:
+            if 'collapse_on' in custom_query:
+                collapse_on = custom_query.get('collapse_on', collapse_on)
                 del custom_query['collapse_on']
             parsedquery.update(custom_query)
             empty_query = False
