@@ -39,41 +39,52 @@ except ImportError:
 
 class FieldCollapser(object):
   
-    def __init__(self, query={'collapse_on': None}):
+    def __init__(self, query={}):
         self._base_results = set()
         self.query = query
-        self.collapse_on = self.query.get('collapse_on', None)
-        self.collapse_on_parent = self.collapse_on == '__PARENT__'
-  
-    def collapse(self, brain):
-        base_brain = brain
-        base_path = path_ = brain.getPath()
-        path_sep = path_.split("/")
+        self.collapse_on = list(self.query.get('collapse_on', []))
+        self.has_collapse_on_parent = '__PARENT__' in self.collapse_on
+        
+        if self.has_collapse_on_parent:
+            self.collapse_on.remove('__PARENT__')
+        
+        self.has_metadata = len(self.collapse_on) > 0
 
-        if self.collapse_on_parent:
+    def _collapse_on_parent(self, brain, default=False):
+        if self.has_collapse_on_parent:
+            base_path = path_ = brain.getPath()
+            path_sep = path_.split("/")
             if brain.Type != 'Plone Site':
                 field_value = "/".join(path_sep[:-1])
+                if field_value not in self._base_results:
+                    self._base_results.add(field_value)
+                    return True
             else:
                 return True
-        else:
-            field_value = getattr(brain, self.collapse_on, None)
+        return default
+
+    def collapse(self, brain):
+        is_successful = False
+        collapsed_on_parent = self._collapse_on_parent(brain)
+        if not self.has_metadata:
+            return collapsed_on_parent
+
+        for metafield in self.collapse_on:
+            field_value = getattr(brain, metafield, None)
             if field_value is None or field_value is Missing.Value:
+                if self.has_collapse_on_parent:
+                    return collapsed_on_parent
                 return True
             if hasattr(field_value, '__iter__'):
                 set_diff = set(field_value) - self._base_results
                 if len(set_diff) > 0:
                     self._base_results.update(set_diff)
-                    return True
-                return False
-        if field_value not in self._base_results:
-            self._base_results.add(field_value)
-            return True
-        return False
-
-        if base_path not in self._base_results:
-            self._base_results.add(base_path)
-            return True
-        return False
+                    if not is_successful:
+                        is_successful = True
+        
+        if self.has_collapse_on_parent:
+            return collapsed_on_parent
+        return is_successful
 
 
 class QueryBuilder(BaseQueryBuilder):
@@ -124,14 +135,18 @@ class QueryBuilder(BaseQueryBuilder):
 
         collapse_on = self.request.get(
             'collapse_on',
-            getattr(self.context, 'collapse_on', None)
+            getattr(self.context, 'collapse_on', set())
         )
         if isinstance(custom_query, dict) and custom_query:
             # Update the parsed query with an extra query dictionary. This may
             # override the parsed query. The custom_query is a dictonary of
             # index names and their associated query values.
             if 'collapse_on' in custom_query:
-                collapse_on = custom_query.get('collapse_on', collapse_on)
+                custom_collapse_on = custom_query.get('collapse_on')
+                if hasattr(custom_collapse_on, '__iter__'):
+                    collapse_on.update(custom_collapse_on)
+                elif type(custom_collapse_on) in [str, unicode]:
+                    collapse_on.add(custom_collapse_on)
                 del custom_query['collapse_on']
             parsedquery.update(custom_query)
             empty_query = False
@@ -145,7 +160,7 @@ class QueryBuilder(BaseQueryBuilder):
                     and results.actual_result_count > limit:
                 results.actual_result_count = limit
 
-        if collapse_on is not None:
+        if collapse_on is not None and len(collapse_on) > 0:
             fc = FieldCollapser(
                 query={'collapse_on': collapse_on}
             )

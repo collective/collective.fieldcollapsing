@@ -56,7 +56,8 @@ class TestQuerybuilder(unittest.TestCase):
 
     def testMakeQuery(self):
         results = self.querybuilder._makequery(
-            query=self.query
+            query=self.query,
+            sort_on="created"
         )
         self.assertEqual(len(results), self.total_num_docs)
         self.assertEqual(
@@ -73,7 +74,26 @@ class TestQuerybuilder(unittest.TestCase):
         results = self.querybuilder._makequery(
             query=self.query,
             custom_query={"collapse_on": "__PARENT__"},
-            brains=True
+            brains=True,
+            sort_on="created"
+        )
+        self.assertEqual(len(results), self.total_num_docs)
+        self.assertEqual(
+            results[0].getURL(),
+            'http://nohost/plone/testfolder-1/testpage-1')
+        self.assertEqual(
+            results[1].getURL(),
+            'http://nohost/plone/testfolder-2/testpage-1')
+        self.assertEqual(
+            results[2].getURL(),
+            'http://nohost/plone/testfolder-3/testpage-1')
+
+    def testMakeQueryWithBrainsMultiCollapse(self):
+        results = self.querybuilder._makequery(
+            query=self.query,
+            custom_query={"collapse_on": ['Subject', "__PARENT__"]},
+            brains=True,
+            sort_on="created"
         )
         self.assertEqual(len(results), self.total_num_docs)
         self.assertEqual(
@@ -90,7 +110,8 @@ class TestQuerybuilder(unittest.TestCase):
         querybuilder = BaseQueryBuilder(self.portal, self.request)
         results = querybuilder._makequery(
             query=self.query,
-            brains=True
+            brains=True,
+            sort_on="created"
         )
         self.assertEqual(len(results), self.total_num_docs)
         self.assertEqual(
@@ -107,7 +128,8 @@ class TestQuerybuilder(unittest.TestCase):
         results = self.querybuilder._makequery(
             query=self.query,
             custom_query={"collapse_on": "__PARENT__"},
-            batch=True
+            batch=True,
+            sort_on="created"
         )
         self.assertEqual(len(results), self.total_num_docs)
         self.assertEqual(
@@ -122,7 +144,8 @@ class TestQuerybuilder(unittest.TestCase):
 
     def testMakeQueryWithCollapseOn(self):
         results = self.querybuilder._makequery(
-            query=self.query
+            query=self.query,
+            sort_on="created"
         )
         self.assertEqual(len(results), self.total_num_docs)
         self.assertEqual(
@@ -134,7 +157,8 @@ class TestQuerybuilder(unittest.TestCase):
 
         collasped_results = self.querybuilder._makequery(
             query=self.query,
-            custom_query={"collapse_on": "__PARENT__"}
+            custom_query={"collapse_on": "__PARENT__"},
+            sort_on="created"
         )
         
         # Test the reported length of the collapsed results
@@ -175,7 +199,8 @@ class TestQuerybuilder(unittest.TestCase):
         }]
         results = self.querybuilder._makequery(
             query=query,
-            custom_query={"collapse_on": "Subject"}
+            custom_query={"collapse_on": "Subject"},
+            sort_on="created"
         )
         self.assertEqual(len(results), self.total_num_docs)
         self.assertEqual(len(results[:]), self.num_folders)
@@ -197,7 +222,8 @@ class TestQuerybuilder(unittest.TestCase):
         }]
         results = self.querybuilder._makequery(
             query=query,
-            custom_query={"collapse_on": "Subject"}
+            custom_query={"collapse_on": "Subject"},
+            sort_on="created"
         )
         self.assertEqual(len(results), self.total_num_docs)
         self.assertEqual(len(results[:]), self.num_folders)
