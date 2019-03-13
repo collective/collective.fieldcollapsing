@@ -164,27 +164,28 @@ class QueryBuilder(BaseQueryBuilder):
         results = []
         if not empty_query:
             results = self._makesubquery(parsedquery, limit)
-
             if collapse_on is not None and len(collapse_on) > 0:
-                # import pdb; pdb.set_trace()
                 fc = FieldCollapser(
                     query={'collapse_on': collapse_on}
                 )
                 collapsed_results = LazyFilter(results, test=fc.collapse)
                 collapsed_result_count = (
-                    results.actual_result_count - b_size + 
-                    collapsed_results.actual_result_count
+                    results.actual_result_count 
                 )
-                
+                collapse_batch_multipler = self.request.get(
+                    'collapse_batch_multipler',
+                    getattr(self.context, 'collapse_batch_multipler', 3)
+                )
                 if collapsed_results.actual_result_count < b_size:
-                    for i in range(0,3):
-                        b_start = parsedquery.get('b_start', 0) + b_size
-                        parsedquery['b_start'] = b_start
+                    for i in range(0, collapse_batch_multipler):
+                        if collapsed_results.actual_result_count >= b_size:
+                            break
+                        parsedquery['b_start'] = \
+                            parsedquery.get('b_start', 0) + b_size
                         results = self._makesubquery(parsedquery, limit)
                         collapsed_results += \
                             LazyFilter(results, test=fc.collapse)
-                        collapsed_result_count += \
-                            b_size + collapsed_results.actual_result_count
+                    b_size = b_size * collapse_batch_multipler
                 
                 if type(results).__name__ == 'LazyCat':
                     results = LazyCat(

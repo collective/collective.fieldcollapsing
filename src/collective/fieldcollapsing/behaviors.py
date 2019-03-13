@@ -44,11 +44,27 @@ class ICollectionFieldCollapser(model.Schema):
             u"Select the field, which the results will collapse on and return "
             u"the first of each collapsed set")
     )
-    directives.order_after(collapse_on='ICollection.query')
     directives.widget(
         'collapse_on',
         SelectFieldWidget
     )
+
+    collapse_batch_multipler = schema.Int(
+        title=_(u"Collapse Batch"),
+        required=False,
+        default=3,
+        description=_(
+            u"Collapse the total number of pages by the given integer to fill "
+            u"up the page. For instance, if each page suppose to show 30 "
+            u"items and there are 18 pages, which have up to 8 items, then "
+            u"fill up the page from other pages based on the given number of "
+            u"collapsed pages. As a result, if the given number of collapsed "
+            u"pages is 2, then there will be a total of 9 pages instead of 18 "
+            u"pages with 30 items if applicable."
+        )
+    )
+    directives.order_after(collapse_batch_multipler='ICollection.query')
+    directives.order_after(collapse_on='ICollection.query')
 
 
 @implementer(ICollectionFieldCollapser)
@@ -64,3 +80,11 @@ class CollectionFieldCollapserFactory(object):
     @collapse_on.setter
     def collapse_on(self, value):
         self.context.collapse_on = value
+
+    @property
+    def collapse_batch_multipler(self):
+        return getattr(self.context, 'collapse_batch_multipler', 3)
+
+    @collapse_batch_multipler.setter
+    def collapse_batch_multipler(self, value):
+        self.context.collapse_batch_multipler = value
