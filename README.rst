@@ -34,6 +34,8 @@ Future Enhancements
 
 - Ability to collapse on other parts of the path other than parent
 - Advanced setting to collapse on a TAL expression
+- Store hidden results in special value in brain if required
+- Option to automatically return parent result instead of first child (avoid having to use listingviews to do this)
 - Integrate with ElasticSearch if installed to use its field collapsing for increased performance
 - Integrate more directly with the query widget so Tiles etc can make use of field collapsing
 
