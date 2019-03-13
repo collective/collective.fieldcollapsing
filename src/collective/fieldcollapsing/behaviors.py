@@ -27,7 +27,7 @@ from collective.fieldcollapsing import _
 def collapse_on_vocab(context):
     catalog = api.portal.get_tool('portal_catalog')
     options = set(catalog._catalog.names)
-    options.add('getParent')
+    options.add('__PARENT__')
     return SimpleVocabulary.fromValues(list(options))
 directlyProvides(collapse_on_vocab, IContextSourceBinder)
 
@@ -36,15 +36,19 @@ directlyProvides(collapse_on_vocab, IContextSourceBinder)
 class ICollectionFieldCollapser(model.Schema):
     """Model based Dexterity Type"""
 
-    collapse_on = schema.Choice(
+    collapse_on = schema.Set(
         title=_(u"Collapse on"),
-        source=collapse_on_vocab,
         required=False,
+        value_type=schema.Choice(source=collapse_on_vocab),
         description=_(
             u"Select the field, which the results will collapse on and return "
             u"the first of each collapsed set")
     )
     directives.order_after(collapse_on='ICollection.query')
+    directives.widget(
+        'collapse_on',
+        SelectFieldWidget
+    )
 
 
 @implementer(ICollectionFieldCollapser)

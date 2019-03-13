@@ -62,6 +62,11 @@ Field Collapsing behaviour will automatically be installed on the default Collec
 
 
 
+TODOs
+----------
+- Add support for Live Preview of the field collapsing feature
+
+
 Contribute
 ----------
 
