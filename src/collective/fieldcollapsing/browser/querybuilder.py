@@ -88,11 +88,19 @@ class FieldCollapser(object):
 
 
 class QueryBuilder(BaseQueryBuilder):
+    
+    def _makesubquery(self, parsedquery, limit):
+        catalog = getToolByName(self.context, 'portal_catalog')
+        results = catalog(**parsedquery)
+        if getattr(results, 'actual_result_count', False) and limit\
+                and results.actual_result_count > limit:
+            results.actual_result_count = limit
+        return results
 
     def _makequery(self, query=None, batch=False, b_start=0, b_size=30,
                    sort_on=None, sort_order=None, limit=0, brains=False,
                    custom_query=None):
-        """Parse the (form)query and return using multi-adapter"""
+        """Parse the (form) query and return using multi-adapter"""
         query_modifiers = getUtilitiesFor(IQueryModifier)
         for name, modifier in sorted(query_modifiers, key=itemgetter(0)):
             query = modifier(query)
@@ -155,28 +163,42 @@ class QueryBuilder(BaseQueryBuilder):
         parsedquery =  self.filter_query(parsedquery)
         results = []
         if not empty_query:
-            results = catalog(**parsedquery)
-            if getattr(results, 'actual_result_count', False) and limit\
-                    and results.actual_result_count > limit:
-                results.actual_result_count = limit
+            results = self._makesubquery(parsedquery, limit)
 
-        if collapse_on is not None and len(collapse_on) > 0:
-            fc = FieldCollapser(
-                query={'collapse_on': collapse_on}
-            )
-            if type(results).__name__ == 'LazyCat':
-                results = LazyCat(
-                    LazyFilter(results, test=fc.collapse),
-                    length=results._len,
-                    actual_result_count=results.actual_result_count
+            if collapse_on is not None and len(collapse_on) > 0:
+                # import pdb; pdb.set_trace()
+                fc = FieldCollapser(
+                    query={'collapse_on': collapse_on}
                 )
-            else:
-                results = LazyMap(
-                    lambda x:x,
-                    LazyFilter(results, test=fc.collapse),
-                    length=results._len,
-                    actual_result_count=results.actual_result_count
+                collapsed_results = LazyFilter(results, test=fc.collapse)
+                collapsed_result_count = (
+                    results.actual_result_count - b_size + 
+                    collapsed_results.actual_result_count
                 )
+                
+                if collapsed_results.actual_result_count < b_size:
+                    for i in range(0,3):
+                        b_start = parsedquery.get('b_start', 0) + b_size
+                        parsedquery['b_start'] = b_start
+                        results = self._makesubquery(parsedquery, limit)
+                        collapsed_results += \
+                            LazyFilter(results, test=fc.collapse)
+                        collapsed_result_count += \
+                            b_size + collapsed_results.actual_result_count
+                
+                if type(results).__name__ == 'LazyCat':
+                    results = LazyCat(
+                        collapsed_results,
+                        length=collapsed_results.actual_result_count,
+                        actual_result_count=collapsed_result_count
+                    )
+                else:
+                    results = LazyMap(
+                        lambda x:x,
+                        collapsed_results,
+                        length=collapsed_results.actual_result_count,
+                        actual_result_count=collapsed_result_count
+                    )
 
         if not brains:
             results = IContentListing(results)
