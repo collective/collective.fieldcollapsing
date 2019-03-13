@@ -52,7 +52,6 @@ Enable the Field Collapsing behavior on the Collection Content Type by visitng D
 TODOs
 ----------
 - Add support for Live Preview of the field collapsing feature
-- Add multiselect support, whereby more than one field can be collapsed on.
 
 
 Contribute
