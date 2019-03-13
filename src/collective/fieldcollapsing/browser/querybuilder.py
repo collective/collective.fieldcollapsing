@@ -182,11 +182,13 @@ class QueryBuilder(BaseQueryBuilder):
                             break
                         parsedquery['b_start'] = \
                             parsedquery.get('b_start', 0) + b_size
-                        results = self._makesubquery(parsedquery, limit)
                         collapsed_results += \
-                            LazyFilter(results, test=fc.collapse)
+                            LazyFilter(
+                                self._makesubquery(parsedquery, limit),
+                                test=fc.collapse
+                            )
                     b_size = b_size * collapse_batch_multipler
-                
+
                 if type(results).__name__ == 'LazyCat':
                     results = LazyCat(
                         collapsed_results,
