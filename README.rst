@@ -18,6 +18,8 @@ For example
 - you would set collapse_on for the collection to be the custom metadata field "company_id" in this example (or if employees are contained within company objects then use the parent path to collapse on).
 - In order for this search page to return the Comany object you could use collective.listingviews to customise the results layout to link to related company as the default results will still list the top employee hit per company.
 
+This add-on works similar to Elastic Search field collapsing function as explained here - https://www.rea-group.com/blog/using-elasticsearch-field-collapsing-to-group-related-search-results/
+
 Features
 --------
 
@@ -27,10 +29,13 @@ Features
 - Retrieve only one result from a whole set of resources is included in the results list
 
 
-Documentation
--------------
+Future Enhancements
+-------------------
 
-This add-on works similar to Elastic Search field collapsing function as explained here - https://www.rea-group.com/blog/using-elasticsearch-field-collapsing-to-group-related-search-results/
+- Ability to collapse on other parts of the path other than parent
+- Advanced setting to collapse on a TAL expression
+- Integrate with ElasticSearch if installed to use its field collapsing for increased performance
+- Integrate more directly with the query widget so Tiles etc can make use of field collapsing
 
 
 Installation
