@@ -27,7 +27,7 @@ from collective.fieldcollapsing import _
 def collapse_on_vocab(context):
     catalog = api.portal.get_tool('portal_catalog')
     options = set(catalog._catalog.names)
-    options.add('ParentContainer')
+    options.add('__PARENT__')
     return SimpleVocabulary.fromValues(list(options))
 directlyProvides(collapse_on_vocab, IContextSourceBinder)
 

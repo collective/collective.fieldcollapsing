@@ -43,7 +43,7 @@ class FieldCollapser(object):
         self._base_results = set()
         self.query = query
         self.collapse_on = self.query.get('collapse_on', None)
-        self.collapse_on_parent = self.collapse_on == 'ParentContainer'
+        self.collapse_on_parent = self.collapse_on == '__PARENT__'
   
     def collapse(self, brain):
         base_brain = brain

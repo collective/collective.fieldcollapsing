@@ -72,7 +72,7 @@ class TestQuerybuilder(unittest.TestCase):
     def testMakeQueryWithBrains(self):
         results = self.querybuilder._makequery(
             query=self.query,
-            custom_query={"collapse_on": "ParentContainer"},
+            custom_query={"collapse_on": "__PARENT__"},
             brains=True
         )
         self.assertEqual(len(results), self.total_num_docs)
@@ -106,7 +106,7 @@ class TestQuerybuilder(unittest.TestCase):
     def testMakeQueryWithBatch(self):
         results = self.querybuilder._makequery(
             query=self.query,
-            custom_query={"collapse_on": "ParentContainer"},
+            custom_query={"collapse_on": "__PARENT__"},
             batch=True
         )
         self.assertEqual(len(results), self.total_num_docs)
@@ -134,7 +134,7 @@ class TestQuerybuilder(unittest.TestCase):
 
         collasped_results = self.querybuilder._makequery(
             query=self.query,
-            custom_query={"collapse_on": "ParentContainer"}
+            custom_query={"collapse_on": "__PARENT__"}
         )
         
         # Test the reported length of the collapsed results

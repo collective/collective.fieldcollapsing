@@ -23,6 +23,10 @@
       factory="plone.app.contentlisting.contentlisting.ContentListing"
       for="ZTUtils.LazyFilter"
       />
+    <adapter
+      factory="plone.app.contentlisting.contentlisting.ContentListing"
+      for="collective.fieldcollapsing.browser.querybuilder.FieldCollapser"
+      />
 
   <browser:page
     name="querybuilderresults"
