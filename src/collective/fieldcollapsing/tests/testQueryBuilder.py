@@ -77,7 +77,7 @@ class TestQuerybuilder(unittest.TestCase):
             brains=True,
             sort_on="created"
         )
-        self.assertEqual(len(results), self.total_num_docs)
+        self.assertEqual(len(results), self.num_folders)
         self.assertEqual(
             results[0].getURL(),
             'http://nohost/plone/testfolder-1/testpage-1')
@@ -95,7 +95,7 @@ class TestQuerybuilder(unittest.TestCase):
             brains=True,
             sort_on="created"
         )
-        self.assertEqual(len(results), self.total_num_docs)
+        self.assertEqual(len(results), self.num_folders)
         self.assertEqual(
             results[0].getURL(),
             'http://nohost/plone/testfolder-1/testpage-1')
@@ -162,7 +162,7 @@ class TestQuerybuilder(unittest.TestCase):
         )
         
         # Test the reported length of the collapsed results
-        self.assertEqual(len(collasped_results), self.total_num_docs)
+        self.assertEqual(len(collasped_results), self.num_folders)
         # Test the reported length of the collapsed results
         # aganist the actual length of the collapsed results
         self.assertNotEqual(
@@ -202,7 +202,7 @@ class TestQuerybuilder(unittest.TestCase):
             custom_query={"collapse_on": "Subject"},
             sort_on="created"
         )
-        self.assertEqual(len(results), self.total_num_docs)
+        self.assertEqual(len(results), self.num_folders)
         self.assertEqual(len(results[:]), self.num_folders)
         self.assertEqual(
             results[0].getURL(),
@@ -225,7 +225,7 @@ class TestQuerybuilder(unittest.TestCase):
             custom_query={"collapse_on": "Subject"},
             sort_on="created"
         )
-        self.assertEqual(len(results), self.total_num_docs)
+        self.assertEqual(len(results), self.num_folders)
         self.assertEqual(len(results[:]), self.num_folders)
         self.assertEqual(
             results[0].getURL(),
