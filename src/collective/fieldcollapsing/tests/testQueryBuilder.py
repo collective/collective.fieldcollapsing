@@ -96,7 +96,7 @@ class TestQuerybuilder(unittest.TestCase):
             sort_on="created",
             b_size=5,
         )
-        self.assertEqual(len(results), self.num_folders)
+        self.assertEqual(len(results), 55) # lazyfilter gueses the len
         self.assertEqual(
             results[0].getURL(),
             'http://nohost/plone/testfolder-1/testpage-1')
@@ -133,7 +133,7 @@ class TestQuerybuilder(unittest.TestCase):
             sort_on="created",
             b_size=5,
         )
-        self.assertEqual(len(results), self.total_num_docs)
+        self.assertEqual(len(results), 55) # lazyfilter guesses the len
         self.assertEqual(
             results[0].getURL(),
             'http://nohost/plone/testfolder-1/testpage-1')
@@ -168,7 +168,7 @@ class TestQuerybuilder(unittest.TestCase):
         )
         
         # Test the reported length of the collapsed results
-        self.assertEqual(len(collasped_results), self.total_num_docs)
+        self.assertEqual(len(collasped_results), 55) # lazyfilter guesses the len
         # Test the reported length of the collapsed results
         # aganist the actual length of the collapsed results
         self.assertNotEqual(
@@ -208,7 +208,6 @@ class TestQuerybuilder(unittest.TestCase):
             custom_query={"collapse_on": "Subject"},
             sort_on="created"
         )
-        self.assertEqual(len(results), self.total_num_docs)
         self.assertEqual(len(results[:]), self.num_folders)
         self.assertEqual(
             results[0].getURL(),
@@ -231,7 +230,6 @@ class TestQuerybuilder(unittest.TestCase):
             custom_query={"collapse_on": "Subject"},
             sort_on="created"
         )
-        self.assertEqual(len(results), self.total_num_docs)
         self.assertEqual(len(results[:]), self.num_folders)
         self.assertEqual(
             results[0].getURL(),
@@ -336,7 +334,7 @@ class TestQuerybuilderResultTypes(unittest.TestCase):
             custom_query={"collapse_on": "Subject"}
         )
         self.assertEqual(len(results), 0)
-        self.assertEqual(type(results).__name__, 'LazyCat')
+        self.assertEqual(type(results).__name__, 'LazyFilterLen')
 
     def testQueryBuilderNonEmptyQueryBatchWithCollapsing(self):
         results = self.querybuilder._makequery(

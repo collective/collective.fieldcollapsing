@@ -109,8 +109,14 @@ class QueryBuilder(BaseQueryBuilder):
         # - the final length if the user clicked on the last page
         # - a look ahead param on the collection representing the max number of unfiltered results to make up a filtered page
 
-        fc_ends = enumerate([int(i) for i in self.request.get('fc_ends','').split(':')])
-        nearest_page, nearest_end = min([(page, i) for page, i in fc_ends if page*b_size <= b_start+b_size])
+        fc_ends = enumerate([int(i) for i in self.request.get('fc_ends','').split(':') if i])
+        fc_ends = [(page, i) for page, i in fc_ends if page*b_size <= b_start+b_size]
+        if not fc_ends:
+            nearest_page, nearest_end = 0,0
+        else:
+            nearest_page, nearest_end = max(fc_ends)
+
+        max_unfiltered_pagesize = 10*30
 
         additional_pages = b_start/b_size - nearest_page
         safe_limit = nearest_end + additional_pages * max_unfiltered_pagesize
@@ -150,7 +156,7 @@ class QueryBuilder(BaseQueryBuilder):
                 index += b_size
 
             # Put this into request so it ends up the batch links
-            self.request.form['fc_ends'] = ':'.join(unfiltered_ends)
+            self.request.form['fc_ends'] = ':'.join([str(i) for i in unfiltered_ends])
 
         if not brains:
             results = IContentListing(results)
