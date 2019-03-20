@@ -2,6 +2,8 @@
 
 import json
 import logging
+from math import floor
+
 import Missing
 
 # from operator import itemgetter
@@ -108,6 +110,8 @@ class QueryBuilder(BaseQueryBuilder):
         # - data about how much filtered in pages the user has click on before
         # - the final length if the user clicked on the last page
         # - a look ahead param on the collection representing the max number of unfiltered results to make up a filtered page
+        #if b_start >=10:
+        #    import pdb; pdb.set_trace()
 
         fc_ends = enumerate([int(i) for i in self.request.get('fc_ends','').split(':') if i])
         fc_ends = [(page, i) for page, i in fc_ends if page*b_size <= b_start+b_size]
@@ -116,14 +120,23 @@ class QueryBuilder(BaseQueryBuilder):
         else:
             nearest_page, nearest_end = max(fc_ends)
 
-        max_unfiltered_pagesize = 10*30
+        max_unfiltered_pagesize = getattr(self.context, 'max_unfiltered_page_size', 1000)
 
-        additional_pages = b_start/b_size - nearest_page
-        safe_limit = nearest_end + additional_pages * max_unfiltered_pagesize
+        additional_pages = int(floor(float(b_start)/b_size - nearest_page))
+        safe_start = nearest_end
+        safe_limit = additional_pages * max_unfiltered_pagesize
 
-        results = super(QueryBuilder, self)._makequery(query, batch=False, b_start=safe_limit, b_size=max_unfiltered_pagesize,
-                   sort_on=sort_on, sort_order=sort_order, limit=limit, brains=True,
-                   custom_query=custom_query)
+        results = super(QueryBuilder, self)._makequery(
+            query,
+            batch=False,
+            b_start=safe_start,
+            b_size=safe_limit,
+            sort_on=sort_on,
+            sort_order=sort_order,
+            limit=limit,
+            brains=True,
+            custom_query=custom_query
+        )
 
         collapse_on = getattr(self.context, 'collapse_on', set())
         if custom_query is not None and 'collapse_on' in custom_query:
@@ -140,6 +153,10 @@ class QueryBuilder(BaseQueryBuilder):
 
             unfiltered = results
             results = LazyFilterLen(unfiltered, test=fc.collapse)
+            fc_len = self.request.get('fc_len', None)
+            if fc_len is not None:
+                #import pdb; pdb.set_trace()
+                results.actual_result_count = results.fc_len = fc_len
 
             # Work out unfiltered index up until the end of the current page
             unfiltered_ends = []
@@ -155,8 +172,9 @@ class QueryBuilder(BaseQueryBuilder):
                         unfiltered_ends.append(results._eindex)
                 index += b_size
 
-            # Put this into request so it ends up the batch links
-            self.request.form['fc_ends'] = ':'.join([str(i) for i in unfiltered_ends])
+            if len(unfiltered_ends) > len(fc_ends):
+                # Put this into request so it ends up the batch links
+                self.request.form['fc_ends'] = ':'.join([str(i) for i in unfiltered_ends])
 
         if not brains:
             results = IContentListing(results)
@@ -171,9 +189,10 @@ class QueryBuilder(BaseQueryBuilder):
 # and it repeats items
 class LazyFilterLen(LazyFilter):
     def __len__(self):
+        if hasattr(self, 'fc_len'):
+            return self.fc_len
         if hasattr(self, '_eindex'):
             self.actual_result_count = self._seq.actual_result_count -  (self._eindex + 1) + len(self._data)
-
         else:
             self.actual_result_count = len(self._data)
         return self.actual_result_count

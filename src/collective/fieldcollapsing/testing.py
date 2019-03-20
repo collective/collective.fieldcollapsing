@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+import transaction
+from plone import api
 from plone.app.contenttypes.testing import PLONE_APP_CONTENTTYPES_FIXTURE
 from plone.app.robotframework.testing import REMOTE_LIBRARY_BUNDLE_FIXTURE
-from plone.app.testing import applyProfile
+from plone.app.testing import applyProfile, TEST_USER_PASSWORD
 from plone.app.testing import login
 from plone.app.testing import setRoles
 from plone.app.testing import FunctionalTesting
@@ -12,6 +14,7 @@ from plone.app.testing import TEST_USER_NAME
 from plone.testing import z2
 
 import collective.fieldcollapsing
+from plone.testing.z2 import Browser
 
 
 class CollectiveFieldcollapsingLayer(PloneSandboxLayer):
@@ -35,6 +38,28 @@ class CollectiveFieldcollapsingLayer(PloneSandboxLayer):
         portal.portal_workflow.setChainForPortalTypes(
             ('Document',), 'plone_workflow'
         )
+
+
+def get_browser(layer):
+    # api.user.create(
+    #     username='adm', password='secret', email='a@example.org',
+    #     roles=('Manager', )
+    # )
+    # transaction.commit()
+    browser = Browser(layer['app'])
+    browser.addHeader('Authorization', 'Basic %s:%s' % (TEST_USER_NAME, TEST_USER_PASSWORD))
+
+    browser.handleErrors = False
+
+    def raising(self, info):
+        import traceback
+        traceback.print_tb(info[2])
+        print info[1]  # noqa: T001
+
+    from Products.SiteErrorLog.SiteErrorLog import SiteErrorLog
+    SiteErrorLog.raising = raising
+
+    return browser
 
 
 COLLECTIVE_FIELDCOLLAPSING_FIXTURE = CollectiveFieldcollapsingLayer()

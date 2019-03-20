@@ -44,12 +44,23 @@ class ICollectionFieldCollapser(model.Schema):
             u"Select the field, which the results will collapse on and return "
             u"the first of each collapsed set")
     )
-    directives.order_after(collapse_on='ICollection.query')
     directives.widget(
         'collapse_on',
         SelectFieldWidget
     )
 
+    max_unfiltered_page_size = schema.Int(
+        title=_(u"Max Uncollapsed Page Size"),
+        required=False,
+        default=1000,
+        description=_(
+            u"To improve performance the search will only lookahead this number "
+            u"of results which will then be collapsed into one page in a batch. "
+            u"If this is set to low you may be missing results on the current page."
+        )
+    )
+    directives.order_after(max_unfiltered_page_size='ICollection.query')
+    directives.order_after(collapse_on='ICollection.query')
 
 @implementer(ICollectionFieldCollapser)
 class CollectionFieldCollapserFactory(object):
@@ -64,3 +75,11 @@ class CollectionFieldCollapserFactory(object):
     @collapse_on.setter
     def collapse_on(self, value):
         self.context.collapse_on = value
+
+    @property
+    def max_unfiltered_page_size(self):
+        return getattr(self.context, 'max_unfiltered_page_size', 1000)
+
+    @max_unfiltered_page_size.setter
+    def max_unfiltered_page_size(self, value):
+        self.context.max_unfiltered_page_size = value
