@@ -54,4 +54,14 @@
     layer="collective.fieldcollapsing.interfaces.ICollectiveFieldcollapsingLayer"
     />
 
+<!--
+  <browser:page
+      name="batchnavigation"
+      for="*"
+      class=".querybuilder.PloneBatchView"
+      permission="zope.Public"
+      layer="collective.fieldcollapsing.interfaces.ICollectiveFieldcollapsingLayer"
+      />
+-->
+
 </configure>
