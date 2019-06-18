@@ -49,56 +49,60 @@ INDEX2MERGE_TYPE = dict(
 
 class FieldCollapser(object):
   
-    def __init__(self, query={}):
-        self._base_results = set()  #TODO: should be (field_value,field_value,..) -> brain
-        self.query = query
-        self.collapse_on = list(self.query.get('collapse_on', []))
-        self.has_collapse_on_parent = '__PARENT__' in self.collapse_on
-        
-        if self.has_collapse_on_parent:
-            self.collapse_on.remove('__PARENT__')
-        
-        self.has_metadata = len(self.collapse_on) > 0
+    def __init__(self, collapse_on=[], merge_fields=[]):
+        self.seen_before = dict()  #TODO: should be (field_value,field_value,..) -> brain
+        self.collapse_on = collapse_on
+        self.merge_fields = merge_fields
 
         # Bit of a hacky way to keep track of how many unfiltered items we are up to
         self.test_count = 0
 
-    def _collapse_on_parent(self, brain, default=False):
-        if self.has_collapse_on_parent:
-            base_path = path_ = brain.getPath()
-            path_sep = path_.split("/")
-            if brain.Type != 'Plone Site':
-                field_value = "/".join(path_sep[:-1])
-                if field_value not in self._base_results:
-                    self._base_results.add(field_value)
-                    return True
-            else:
-                return True
-        return default
-
     def collapse(self, brain):
         is_successful = False
         self.test_count += 1
-        collapsed_on_parent = self._collapse_on_parent(brain)
-        if not self.has_metadata:
-            return collapsed_on_parent
+
+        key = ()
 
         for metafield in self.collapse_on:
-            field_value = getattr(brain, metafield, None)
-            if field_value is None or field_value is Missing.Value:
-                if self.has_collapse_on_parent:
-                    return collapsed_on_parent
-                return True
-            if hasattr(field_value, '__iter__'):
-                set_diff = set(field_value) - self._base_results
-                if len(set_diff) > 0:
-                    self._base_results.update(set_diff)
-                    if not is_successful:
-                        is_successful = True
-        
-        if self.has_collapse_on_parent:
-            return collapsed_on_parent
-        return is_successful
+            if metafield == '__PARENT__':
+                base_path = path_ = brain.getPath()
+                path_sep = path_.split("/")
+                if brain.Type != 'Plone Site':
+                    key += ("/".join(path_sep[:-1]), )
+            else:
+                field_value = getattr(brain, metafield, Missing.Value)
+                if field_value is Missing.Value:
+                    return True
+                key += (field_value,)
+        if key in self.seen_before:
+            # in this case we need to merge some fields from this result into our first one
+            first = self.seen_before[key]
+            for metafield in self.merge_fields:
+                merged = getattr(first, metafield, None)
+                value = getattr(brain, metafield, None)
+                if value is None:
+                    continue
+                elif merged is None:
+                    merged = type(value).__call__()
+
+                if type(merged) == str:
+                    # TODO: actually makes more sense to do this based on index type
+                    merged += " " + str(value)
+                elif type(merged) in (tuple, list):
+                    merged += tuple(i for i in tuple(value) if i not in merged)
+                elif type(merged) == dict:
+                    merged.update(dict(value))
+                elif type(merged) in [int,float]:
+                    merged += value
+                else:
+                    #TODO: how to merge dates?
+                    continue
+
+                setattr(first, metafield, merged)
+            return False
+        else:
+            self.seen_before[key] = brain
+            return True
 
 
 class QueryBuilder(BaseQueryBuilder):
@@ -152,10 +156,16 @@ class QueryBuilder(BaseQueryBuilder):
             elif type(custom_collapse_on) in [str, unicode]:
                 collapse_on.add(custom_collapse_on)
             del custom_query['collapse_on']
+        merge_fields = getattr(self.context, 'merge_fields', None)
+        if merge_fields is None and custom_query is not None:
+            merge_fields = custom_query.get('merge_fields',set())
+        else:
+            merge_fields = set()
 
-        if  collapse_on:
 
-            fc = FieldCollapser(query={'collapse_on': collapse_on})
+        if collapse_on:
+
+            fc = FieldCollapser(collapse_on=collapse_on, merge_fields=merge_fields)
 
             unfiltered = results
             results = LazyFilterLen(unfiltered, test=fc.collapse)
