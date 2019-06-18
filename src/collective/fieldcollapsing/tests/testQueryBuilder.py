@@ -251,6 +251,62 @@ class TestQuerybuilder(unittest.TestCase):
             'http://nohost/plone/testfolder-03/testpage-03-01')
 
 
+    def testMergeFields(self):
+
+        # First lets show the data in there
+        results = self.querybuilder._makequery(
+            query=self.query,
+            sort_on="created"
+        )
+        self.assertEqual(len(results), self.total_num_docs)
+        self.assertEqual(
+            results[0].Subject,
+            'http://nohost/plone/testfolder-01/testpage-01-01')
+        self.assertEqual(
+            results[1].Subject,
+            'http://nohost/plone/testfolder-01/testpage-01-02')
+
+
+        collasped_results = self.querybuilder._makequery(
+            query=self.query,
+            custom_query={"collapse_on": "__PARENT__", "merge_fields":["Subject"]},
+            sort_on="created",
+            b_size=5
+        )
+
+        # now when we look at subject we have folders that inc
+
+        # Test the reported length of the collapsed results
+        self.assertEqual(len(collasped_results), 55)  # lazyfilter guesses the len
+        # Test the reported length of the collapsed results
+        # aganist the actual length of the collapsed results
+        self.assertNotEqual(
+            len(collasped_results[:]),
+            self.total_num_docs
+        )
+        # The actual length of the collapsed results should be 20 because
+        # we created 20 folders and retrieve first document from each folder.
+        self.assertEqual(
+            len(collasped_results[:]),
+            self.num_folders
+        )
+
+        self.assertEqual(
+            collasped_results[0].getURL(),
+            'http://nohost/plone/testfolder-01/testpage-01-01')
+        self.assertEqual(
+            collasped_results[1].getURL(),
+            'http://nohost/plone/testfolder-02/testpage-02-01')
+        self.assertEqual(
+            collasped_results[2].getURL(),
+            'http://nohost/plone/testfolder-03/testpage-03-01')
+
+        # Test the 4th result item aganist the 4th collapsed result item.
+        self.assertNotEqual(
+            results[3].getURL(),
+            collasped_results[3].getURL())
+
+
 class TestCollection(unittest.TestCase):
     layer = COLLECTIVE_FIELDCOLLAPSING_FUNCTIONAL_TESTING
 

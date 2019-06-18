@@ -59,6 +59,19 @@ class ICollectionFieldCollapser(model.Schema):
             u"If this is set to low you may be missing results on the current page."
         )
     )
+
+    merge_fields = schema.Set(
+        title=_(u"Fields to merge"),
+        required=False,
+        description=_(
+            u"Combine field data into a list when items collapse."
+        ),
+        value_type=schema.Choice(
+            vocabulary = 'collective.collectionfilter.GroupByCriteria',
+        )
+    )
+
+    directives.order_after(merge_fields='ICollection.query')
     directives.order_after(max_unfiltered_page_size='ICollection.query')
     directives.order_after(collapse_on='ICollection.query')
 

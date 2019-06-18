@@ -50,7 +50,7 @@ INDEX2MERGE_TYPE = dict(
 class FieldCollapser(object):
   
     def __init__(self, query={}):
-        self._base_results = set()
+        self._base_results = set()  #TODO: should be (field_value,field_value,..) -> brain
         self.query = query
         self.collapse_on = list(self.query.get('collapse_on', []))
         self.has_collapse_on_parent = '__PARENT__' in self.collapse_on
