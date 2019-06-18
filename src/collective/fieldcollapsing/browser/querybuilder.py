@@ -74,35 +74,35 @@ class FieldCollapser(object):
                 if field_value is Missing.Value:
                     return True
                 key += (field_value,)
-        if key in self.seen_before:
-            # in this case we need to merge some fields from this result into our first one
-            first = self.seen_before[key]
-            for metafield in self.merge_fields:
-                merged = getattr(first, metafield, None)
-                value = getattr(brain, metafield, None)
-                if value is None:
-                    continue
-                elif merged is None:
-                    merged = type(value).__call__()
-
-                if type(merged) == str:
-                    # TODO: actually makes more sense to do this based on index type
-                    merged += " " + str(value)
-                elif type(merged) in (tuple, list):
-                    merged += tuple(i for i in tuple(value) if i not in merged)
-                elif type(merged) == dict:
-                    merged.update(dict(value))
-                elif type(merged) in [int,float]:
-                    merged += value
-                else:
-                    #TODO: how to merge dates?
-                    continue
-
-                setattr(first, metafield, merged)
-            return False
-        else:
+        if key not in self.seen_before:
             self.seen_before[key] = brain
             return True
+
+        # in this case we need to merge some fields from this result into our first one
+        first = self.seen_before[key]
+        for metafield in self.merge_fields:
+            merged = getattr(first, metafield, None)
+            value = getattr(brain, metafield, None)
+            if value is None:
+                continue
+            elif merged is None:
+                merged = type(value).__call__()
+
+            if type(merged) == str:
+                # TODO: actually makes more sense to do this based on index type
+                merged += " " + str(value)
+            elif type(merged) in (tuple, list):
+                merged += tuple(i for i in tuple(value) if i not in merged)
+            elif type(merged) == dict:
+                merged.update(dict(value))
+            elif type(merged) in [int,float]:
+                merged += value
+            else:
+                #TODO: how to merge dates?
+                continue
+
+            setattr(first, metafield, merged)
+        return False
 
 
 class QueryBuilder(BaseQueryBuilder):
@@ -159,7 +159,7 @@ class QueryBuilder(BaseQueryBuilder):
         merge_fields = getattr(self.context, 'merge_fields', None)
         if merge_fields is None and custom_query is not None:
             merge_fields = custom_query.get('merge_fields',set())
-        else:
+        elif merge_fields is None:
             merge_fields = set()
 
 

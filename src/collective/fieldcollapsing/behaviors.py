@@ -26,9 +26,9 @@ from collective.fieldcollapsing import _
 
 def collapse_on_vocab(context):
     catalog = api.portal.get_tool('portal_catalog')
-    options = set(catalog._catalog.names)
-    options.add('__PARENT__')
-    return SimpleVocabulary.fromValues(list(options))
+    options = [('Path (Parent)', '__PARENT__')]
+    options += [(i,i) for i in sorted(catalog._catalog.names)]
+    return SimpleVocabulary.fromItems(list(options))
 directlyProvides(collapse_on_vocab, IContextSourceBinder)
 
 
@@ -36,6 +36,8 @@ directlyProvides(collapse_on_vocab, IContextSourceBinder)
 class ICollectionFieldCollapser(model.Schema):
     """Model based Dexterity Type"""
 
+    directives.widget('collapse_on', SelectFieldWidget)
+    directives.order_after(collapse_on='ICollection.query')
     collapse_on = schema.Set(
         title=_(u"Collapse on"),
         required=False,
@@ -44,11 +46,21 @@ class ICollectionFieldCollapser(model.Schema):
             u"Select the field, which the results will collapse on and return "
             u"the first of each collapsed set")
     )
-    directives.widget(
-        'collapse_on',
-        SelectFieldWidget
+
+    directives.widget('merge_fields',SelectFieldWidget)
+    directives.order_after(merge_fields='ICollectionFieldCollapser.collapse_on')
+    merge_fields = schema.Set(
+        title=_(u"Fields to merge"),
+        required=False,
+        description=_(
+            u"Combine field data into a list when items collapse."
+        ),
+        value_type=schema.Choice(
+            source=collapse_on_vocab,
+        )
     )
 
+    directives.order_after(max_unfiltered_page_size='ICollectionFieldCollapser.merge_fields')
     max_unfiltered_page_size = schema.Int(
         title=_(u"Max Uncollapsed Page Size"),
         required=False,
@@ -60,20 +72,7 @@ class ICollectionFieldCollapser(model.Schema):
         )
     )
 
-    merge_fields = schema.Set(
-        title=_(u"Fields to merge"),
-        required=False,
-        description=_(
-            u"Combine field data into a list when items collapse."
-        ),
-        value_type=schema.Choice(
-            vocabulary = 'collective.collectionfilter.GroupByCriteria',
-        )
-    )
 
-    directives.order_after(merge_fields='ICollection.query')
-    directives.order_after(max_unfiltered_page_size='ICollection.query')
-    directives.order_after(collapse_on='ICollection.query')
 
 @implementer(ICollectionFieldCollapser)
 class CollectionFieldCollapserFactory(object):
@@ -96,3 +95,11 @@ class CollectionFieldCollapserFactory(object):
     @max_unfiltered_page_size.setter
     def max_unfiltered_page_size(self, value):
         self.context.max_unfiltered_page_size = value
+
+    @property
+    def merge_fields(self):
+        return getattr(self.context, 'merge_fields', None)
+
+    @merge_fields.setter
+    def merge_fields(self, value):
+        self.context.merge_fields = value
