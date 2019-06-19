@@ -304,6 +304,27 @@ class TestQuerybuilder(unittest.TestCase):
             collasped_results[0].Title(), 'Test Page 01-01 Test Page 01-02 Test Page 01-03 Test Page 01-04 Test Page 01-05')
 
 
+    def testMergeType(self):
+
+        # First lets show the data in there
+        results = self.querybuilder._makequery(
+            query=self.query,
+            sort_on="created"
+        )
+        self.assertEqual(
+            results[0].Type(), 'Page')
+
+        collasped_results = self.querybuilder._makequery(
+            query=self.query,
+            custom_query={"collapse_on": "__PARENT__", "merge_fields":["Type"]},
+            sort_on="created",
+            b_size=5
+        )
+
+        # now when we look at subject to see if its merged
+        self.assertEqual(collasped_results[0].Type(), ('Page',) )
+
+
 class TestCollection(unittest.TestCase):
     layer = COLLECTIVE_FIELDCOLLAPSING_FUNCTIONAL_TESTING
 

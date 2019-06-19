@@ -66,8 +66,6 @@ class FieldCollapser(object):
             merge_type[field] = INDEX2MERGE_TYPE.get(index.meta_type, None)
 
 
-
-
     def collapse(self, brain):
         key = ()
         for metafield in self.collapse_on:
@@ -77,34 +75,45 @@ class FieldCollapser(object):
                 if brain.Type != 'Plone Site':
                     key += ("/".join(path_sep[:-1]), )
             else:
-                field_value = getattr(brain, metafield, Missing.Value)
-                if field_value is Missing.Value:
-                    return True
+                field_value = getattr(brain, metafield, None)
+                #if field_value is Missing.Value:
+                #    return True
                 key += (field_value,)
+
+        def conv(value, _type):
+            if not value:
+                return _type()
+            elif type(value) == _type:
+                return value
+
+            if _type in [list,tuple] and type(value) not in [list,tuple]:
+                return _type([value])
+            else:
+                return _type(value)
+
         if key not in self.seen_before:
             self.seen_before[key] = brain
-            return True
+            first = object() # so first is None
+            keep = True
+        else:
+            first = self.seen_before[key]
+            keep = False
 
         # in this case we need to merge some fields from this result into our first one
-        first = self.seen_before[key]
         for metafield in self.merge_fields:
-            merged = getattr(first, metafield, None)
-            value = getattr(brain, metafield, None)
             _type = self.merge_type[metafield]
-            if value is None:
+            merged = conv(getattr(first, metafield, None), _type)
+            value = conv(getattr(brain, metafield, None), _type)
+            if not value:
                 continue
-            elif merged is None:
-                merged = type(value).__call__()
 
             if _type == None:
                 continue
+            elif _type in (tuple, list):
+                merged += tuple(i for i in tuple(value) if i not in merged)
             elif _type == unicode:
                 # TODO: actually makes more sense to do this based on index type
-                merged = u" ".join(merged, unicode(value))
-            elif _type in (tuple, list):
-                if type(value) not in (tuple, list):
-                    value = tuple([value])
-                merged += tuple(i for i in tuple(value) if i not in merged)
+                merged = u" ".join([merged, unicode(value)]).strip()
             elif _type == dict:
                 merged.update(dict(value))
             elif _type in [int,float]:
@@ -113,8 +122,8 @@ class FieldCollapser(object):
                 #TODO: how to merge dates?
                 continue
 
-            setattr(first, metafield, merged)
-        return False
+            setattr(self.seen_before[key], metafield, merged)
+        return keep
 
 
 class QueryBuilder(BaseQueryBuilder):
