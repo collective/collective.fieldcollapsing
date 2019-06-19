@@ -263,7 +263,10 @@ class TestQuerybuilder(unittest.TestCase):
 
         for i, page in enumerate(results):
             tags = page.Subject()
-            page.getObject().setSubject(tags + ('page {}'.format(i+1),))
+            if i % 2 == 1:
+                page.getObject().setSubject(set())
+            else:
+                page.getObject().setSubject(('page {}'.format(i+1),))
             page.getObject().reindexObject()
 
         collasped_results = self.querybuilder._makequery(
@@ -275,9 +278,9 @@ class TestQuerybuilder(unittest.TestCase):
 
         # now when we look at subject to see if its merged
         self.assertEqual(
-            collasped_results[0].Subject(), ('Lorem', 'Folder 1', 'page 1', 'page 2', 'page 3', 'page 4', 'page 5'))
+            collasped_results[0].Subject(), ('page 1', 'page 3', 'page 5'))
         self.assertEqual(
-            collasped_results[1].Subject(), ('Lorem', 'Folder 2', 'page 6', 'page 7', 'page 8', 'page 9', 'page 10'))
+            collasped_results[1].Subject(), ('page 7', 'page 9'))
 
     def testMergeTitle(self):
 

@@ -13,6 +13,7 @@ import Missing
 # from plone.app.querystring.interfaces import IParsedQueryIndexModifier
 # from plone.app.querystring.interfaces import IQueryModifier
 # from plone.app.querystring.interfaces import IQuerystringRegistryReader
+from plone import api
 from plone.app.contentlisting.interfaces import IContentListing
 from plone.batching import Batch
 # from plone.registry.interfaces import IRegistry
@@ -54,15 +55,21 @@ class FieldCollapser(object):
         self.collapse_on = collapse_on
         self.merge_fields = merge_fields
 
-        # Bit of a hacky way to keep track of how many unfiltered items we are up to
-        self.test_count = 0
+        self.merge_type = merge_type = {}
+        catalog = api.portal.get_tool('portal_catalog')
+        indexes = dict(zip(catalog.indexes(), catalog.getIndexObjects()))
+        for field in merge_fields:
+            index = indexes.get(field, None)
+            if index is None:
+                merge_type[field] = None
+                continue
+            merge_type[field] = INDEX2MERGE_TYPE.get(index.meta_type, None)
+
+
+
 
     def collapse(self, brain):
-        is_successful = False
-        self.test_count += 1
-
         key = ()
-
         for metafield in self.collapse_on:
             if metafield == '__PARENT__':
                 base_path = path_ = brain.getPath()
@@ -83,19 +90,24 @@ class FieldCollapser(object):
         for metafield in self.merge_fields:
             merged = getattr(first, metafield, None)
             value = getattr(brain, metafield, None)
+            _type = self.merge_type[metafield]
             if value is None:
                 continue
             elif merged is None:
                 merged = type(value).__call__()
 
-            if type(merged) == str:
+            if _type == None:
+                continue
+            elif _type == unicode:
                 # TODO: actually makes more sense to do this based on index type
-                merged += " " + str(value)
-            elif type(merged) in (tuple, list):
+                merged = u" ".join(merged, unicode(value))
+            elif _type in (tuple, list):
+                if type(value) not in (tuple, list):
+                    value = tuple([value])
                 merged += tuple(i for i in tuple(value) if i not in merged)
-            elif type(merged) == dict:
+            elif _type == dict:
                 merged.update(dict(value))
-            elif type(merged) in [int,float]:
+            elif _type in [int,float]:
                 merged += value
             else:
                 #TODO: how to merge dates?
