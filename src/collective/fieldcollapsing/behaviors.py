@@ -53,7 +53,8 @@ class ICollectionFieldCollapser(model.Schema):
         title=_(u"Fields to merge"),
         required=False,
         description=_(
-            u"Combine field data into a list when items collapse."
+            u"Combine field data into a list/text when items collapse based on associated Index type. This is useful for"
+            u"collective.collectionfilter to ensure the right options appear in filters"
         ),
         value_type=schema.Choice(
             source=collapse_on_vocab,
