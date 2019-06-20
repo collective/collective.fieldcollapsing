@@ -40,6 +40,12 @@ except ImportError:
     from Products.ZCatalog.Lazy import LazyCat
     from Products.ZCatalog.Lazy import LazyMap
 
+INDEX2MERGE_TYPE = dict(
+    KeywordIndex=tuple,
+    FieldIndex=tuple,
+    TopicIndex=tuple,
+    ZCTextIndex=unicode
+)
 
 class FieldCollapser(object):
   
@@ -156,7 +162,7 @@ class QueryBuilder(BaseQueryBuilder):
             fc_len = self.request.get('fc_len', None)
             if fc_len is not None:
                 #import pdb; pdb.set_trace()
-                results.actual_result_count = results.fc_len = fc_len
+                results.actual_result_count = results.fc_len = int(fc_len)
 
             # Work out unfiltered index up until the end of the current page
             unfiltered_ends = []
