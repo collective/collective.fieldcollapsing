@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import hashlib
 import json
 import logging
 from math import floor
@@ -144,7 +144,28 @@ class QueryBuilder(BaseQueryBuilder):
         #if b_start >=10:
         #    import pdb; pdb.set_trace()
 
-        fc_ends = enumerate([int(i) for i in self.request.get('fc_ends','').split(':') if i])
+        def get_hint(name, _type, default=None):
+
+            if custom_query is not None and name in custom_query:
+                value = custom_query[name]
+                del custom_query[name]
+            else:
+                value = self.request.get(name, default)
+            if value is not None:
+                return _type(value)
+
+        # Need to do this here as it removes these from the query before checksum is performed
+        fc_ends = get_hint('fc_ends', str, '')
+        fc_len = get_hint("fc_len", int)
+        fc_check = get_hint('fc_check', str)
+
+        checksum = hashlib.md5( json.dumps( (query, custom_query, sort_on, sort_order, b_size) , sort_keys=True) ).hexdigest()
+
+        if fc_check != checksum:
+            fc_ends = ''
+            fc_len = None
+
+        fc_ends = enumerate([int(i) for i in fc_ends.split(':') if i])
         fc_ends = [(page, i) for page, i in fc_ends if page*b_size <= b_start+b_size]
         if not fc_ends:
             nearest_page, nearest_end = 0,0
@@ -156,6 +177,7 @@ class QueryBuilder(BaseQueryBuilder):
         additional_pages = int(floor(float(b_start)/b_size - nearest_page))
         safe_start = nearest_end
         safe_limit = additional_pages * max_unfiltered_pagesize
+
 
         results = super(QueryBuilder, self)._makequery(
             query,
@@ -190,9 +212,7 @@ class QueryBuilder(BaseQueryBuilder):
 
             unfiltered = results
             results = LazyFilterLen(unfiltered, test=fc.collapse)
-            fc_len = self.request.get('fc_len', None)
             if fc_len is not None:
-                #import pdb; pdb.set_trace()
                 results.actual_result_count = results.fc_len = int(fc_len)
 
             # Work out unfiltered index up until the end of the current page
@@ -213,6 +233,9 @@ class QueryBuilder(BaseQueryBuilder):
                 # Put this into request so it ends up the batch links
                 self.request.form['fc_ends'] = ':'.join([str(i) for i in unfiltered_ends])
 
+            # This ensures if fc_len or fc_ends are used after query is updated then we don't use these hints
+            self.request.form['fc_check'] = checksum
+
         if not brains:
             results = IContentListing(results)
         if batch:
@@ -226,11 +249,18 @@ class QueryBuilder(BaseQueryBuilder):
 # and it repeats items
 class LazyFilterLen(LazyFilter):
     def __len__(self):
-        if hasattr(self, 'fc_len'):
-            return self.fc_len
-        if hasattr(self, '_eindex'):
-            self.actual_result_count = self._seq.actual_result_count -  (self._eindex + 1) + len(self._data)
-        else:
+        # There are 3 modes.
+        # - _eindex exists>=0 - halfway through filtering
+        # - _eindex doesn't exist -  filtering finished to the end
+        # - fc_len gives a hint about the length
+
+
+        if not hasattr(self, '_eindex'):
             self.actual_result_count = len(self._data)
+        else:
+            if hasattr(self, 'fc_len') and (self._eindex+1) < self.fc_len:
+                return self.fc_len
+            else:
+                self.actual_result_count = self._seq.actual_result_count - (self._eindex + 1) + len(self._data)
         return self.actual_result_count
 

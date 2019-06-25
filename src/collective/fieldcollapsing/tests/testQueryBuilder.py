@@ -325,6 +325,63 @@ class TestQuerybuilder(unittest.TestCase):
         self.assertEqual(collasped_results[0].Type(), ('Page',) )
 
 
+    def testLengthHintWrong(self):
+        query = [{
+            'i': 'Subject',
+            'o': 'plone.app.querystring.operation.selection.any',
+            'v': ['Lorem', 'Ipsum'],
+        }]
+        results = self.querybuilder._makequery(
+            query=query,
+            custom_query={"collapse_on": "Subject", "fc_len":1},
+            sort_on="created"
+        )
+        self.assertEqual(len(results), 15)
+
+    def testLengthHintQueryChanged(self):
+        query = [{
+            'i': 'Subject',
+            'o': 'plone.app.querystring.operation.selection.any',
+            'v': ['Lorem', 'Ipsum'],
+        },
+        {
+            'i': 'path',
+            'o': 'plone.app.querystring.operation.string.path',
+            'v': '/'}
+        ]
+        results = self.querybuilder._makequery(
+            query=query,
+            custom_query={"collapse_on": "Subject", "fc_len":15},
+            sort_on="created",
+            b_size=5,
+        )
+        self.assertEqual(len(results), 55) # It's made a guess at the total length
+        self.assertEquals(self.request.form['fc_ends'], "25") # We don't know the end yet but we know the end of the first batch
+
+        # if we use the checksum with the same query but set the length hint wrong then we will get the wrong len
+
+        checksum = self.request.form['fc_check']
+        results = self.querybuilder._makequery(
+            query=query,
+            custom_query={"collapse_on": "Subject", "fc_len":30, "fc_check":checksum},
+            sort_on="created",
+            b_size = 5,
+        )
+        self.assertEqual(len(results), 30)
+
+
+        # But if we change the query then fc_len will be ignored
+
+        checksum = self.request.form['fc_check']
+        results = self.querybuilder._makequery(
+            query=query,
+            custom_query={"collapse_on": "portal_type", "fc_len":30, "fc_check":checksum},
+            sort_on="created",
+            b_size = 5,
+        )
+        self.assertEqual(len(results), 1)
+
+
 class TestCollection(unittest.TestCase):
     layer = COLLECTIVE_FIELDCOLLAPSING_FUNCTIONAL_TESTING
 
