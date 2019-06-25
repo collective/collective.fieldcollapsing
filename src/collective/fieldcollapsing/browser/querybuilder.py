@@ -165,7 +165,7 @@ class QueryBuilder(BaseQueryBuilder):
             fc_ends = ''
             fc_len = None
 
-        fc_ends = enumerate([int(i) for i in fc_ends.split(':') if i])
+        fc_ends = enumerate([int(i) for i in fc_ends.split(',') if i])
         fc_ends = [(page, i) for page, i in fc_ends if page*b_size <= b_start+b_size]
         if not fc_ends:
             nearest_page, nearest_end = 0,0
@@ -231,7 +231,7 @@ class QueryBuilder(BaseQueryBuilder):
 
             if len(unfiltered_ends) > len(fc_ends):
                 # Put this into request so it ends up the batch links
-                self.request.form['fc_ends'] = ':'.join([str(i) for i in unfiltered_ends])
+                self.request.form['fc_ends'] = ','.join([str(i) for i in unfiltered_ends])
 
             # This ensures if fc_len or fc_ends are used after query is updated then we don't use these hints
             self.request.form['fc_check'] = checksum
