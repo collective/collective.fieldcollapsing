@@ -116,7 +116,7 @@ class FieldCollapser(object):
                 merged = u" ".join([merged, unicode(value)]).strip()
             elif _type == dict:
                 merged.update(dict(value))
-            elif _type in [int,float]:
+            elif _type in [int, float]:
                 merged += value
             else:
                 #TODO: how to merge dates?
@@ -235,6 +235,17 @@ class QueryBuilder(BaseQueryBuilder):
 
             # This ensures if fc_len or fc_ends are used after query is updated then we don't use these hints
             self.request.form['fc_check'] = checksum
+
+
+            # This is a bit of hack. for collectionfilter they iterate teh results to work out all teh values
+            # If we are using merging then the merge doesn't really work until you get to the end. So either
+            # collectionfilter needs to iterate first then do the count or we need iterate first in some cases
+            # if we iterate first then do we use the max_unfiltered_pagesize as the hint on how much to look
+            # ahead?
+            # In this case we will assume if the Batch=False then we should iterate first to ensure merge is correct
+            # we will do this even if there is no merge to ensure the len of the results is also accurate
+            if not batch:
+                list(results)
 
         if not brains:
             results = IContentListing(results)

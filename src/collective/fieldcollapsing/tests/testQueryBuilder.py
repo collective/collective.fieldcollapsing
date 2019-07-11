@@ -98,6 +98,9 @@ class TestQuerybuilder(unittest.TestCase):
         self.assertEqual(
             results[2].getURL(),
             'http://nohost/plone/testfolder-03/testpage-03-01')
+        self.assertEqual(
+            results[14].getURL(),
+            'http://nohost/plone/testfolder-15/testpage-15-01')
 
     def testMakeQueryWithBrainsMultiCollapse(self):
         results = self.querybuilder._makequery(
@@ -106,6 +109,7 @@ class TestQuerybuilder(unittest.TestCase):
             brains=True,
             sort_on="created",
             b_size=5,
+            batch=True,
         )
         self.assertEqual(len(results), 55) # lazyfilter gueses the len
         self.assertEqual(
@@ -173,7 +177,8 @@ class TestQuerybuilder(unittest.TestCase):
             query=self.query,
             custom_query={"collapse_on": "__PARENT__"},
             sort_on="created",
-            b_size=5
+            b_size=5,
+            batch=True,
         )
         
         # Test the reported length of the collapsed results
@@ -181,13 +186,13 @@ class TestQuerybuilder(unittest.TestCase):
         # Test the reported length of the collapsed results
         # aganist the actual length of the collapsed results
         self.assertNotEqual(
-            len(collasped_results[:]),
+            len(list(collasped_results._sequence)),
             self.total_num_docs
         )
         # The actual length of the collapsed results should be 20 because
         # we created 20 folders and retrieve first document from each folder.
         self.assertEqual(
-            len(collasped_results[:]),
+            len(list(collasped_results._sequence)),
             self.num_folders
         )
         
@@ -251,7 +256,8 @@ class TestQuerybuilder(unittest.TestCase):
             'http://nohost/plone/testfolder-03/testpage-03-01')
 
 
-    def testMergeSubject(self):
+    def testMergeKeywordIndex(self):
+        "Example of keyword indexed stored as tuples which gets merge into more tupples"
 
         # First lets show the data in there
         results = self.querybuilder._makequery(
@@ -282,7 +288,8 @@ class TestQuerybuilder(unittest.TestCase):
         self.assertEqual(
             collasped_results[1].Subject(), ('page 7', 'page 9'))
 
-    def testMergeTitle(self):
+    def testMergeZCIndex(self):
+        " Example of textindex which gets merged by joining strings"
 
         # First lets show the data in there
         results = self.querybuilder._makequery(
@@ -304,25 +311,76 @@ class TestQuerybuilder(unittest.TestCase):
             collasped_results[0].Title(), 'Test Page 01-01 Test Page 01-02 Test Page 01-03 Test Page 01-04 Test Page 01-05')
 
 
-    def testMergeType(self):
+    def testMergeFieldIndex(self):
+        " Type is an example of field index which will get merged into a tuple "
+
+
+        # Lets add in a some other types of content
+        # test_folder = self.portal['testfolder-01']
+
+        # id = test_folder.invokeFactory("Folder", 'testfolder-01-01', title="Test Folder 1")
+        # news = test_folder[id]
+        # self.portal.portal_workflow.doActionFor(news, 'publish')
 
         # First lets show the data in there
         results = self.querybuilder._makequery(
             query=self.query,
-            sort_on="created"
+            sort_on="created",
+            brains=True,
         )
         self.assertEqual(
-            results[0].Type(), 'Page')
+            results[0].getId, 'testpage-01-01')
 
         collasped_results = self.querybuilder._makequery(
             query=self.query,
-            custom_query={"collapse_on": "__PARENT__", "merge_fields":["Type"]},
+            custom_query={"collapse_on": "__PARENT__", "merge_fields":["getId"]},
             sort_on="created",
-            b_size=5
+            b_size=5,
+            brains=True,
         )
 
-        # now when we look at subject to see if its merged
-        self.assertEqual(collasped_results[0].Type(), ('Page',) )
+        # now when we look at getid to see if its merged
+        self.assertEqual(collasped_results[0].getId, ('testpage-01-01', 'testpage-01-02','testpage-01-03', 'testpage-01-04', 'testpage-01-05'))
+        self.assertEqual(collasped_results[1].getId, ('testpage-02-01', 'testpage-02-02','testpage-02-03', 'testpage-02-04', 'testpage-02-05'))
+        #import pdb; pdb.set_trace()
+        #self.assertEqual(collasped_results[14].getId, ('testpage-15-01', 'testpage-15-02','testpage-15-03', 'testpage-15-04', 'testpage-15-05'))
+
+    def testMergeIteration(self):
+        " Ensure we still merge if we iterate instead of use getitem "
+
+        # First lets show the data in there
+        results = self.querybuilder._makequery(
+            query=self.query,
+            sort_on="created",
+            brains=True,
+        )
+
+        collasped_results = self.querybuilder._makequery(
+            query=self.query,
+            custom_query={"collapse_on": "__PARENT__", "merge_fields":["getId"]},
+            sort_on="created",
+            b_size=5,
+            batch=False,
+            brains=True,
+        )
+
+        merged = [len(b.getId) for b in collasped_results]
+        self.assertEqual(merged, [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5])
+
+        # However if we do the same query with batch on then won't do the merge after the first batch
+        collasped_results = self.querybuilder._makequery(
+            query=self.query,
+            custom_query={"collapse_on": "__PARENT__", "merge_fields":["getId"]},
+            sort_on="created",
+            b_size=5,
+            batch=True,
+            brains=True,
+        )
+
+        # because we get the merged value before we reach the end the merge hasn't been completed
+        merged = [len(b.getId) for b in collasped_results._sequence]
+        self.assertEqual(merged, [5, 5, 5, 5, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+
 
 
     def testLengthHintWrong(self):
@@ -354,6 +412,7 @@ class TestQuerybuilder(unittest.TestCase):
             custom_query={"collapse_on": "Subject", "fc_len":15},
             sort_on="created",
             b_size=5,
+            batch=True,
         )
         self.assertEqual(len(results), 55) # It's made a guess at the total length
         self.assertEquals(self.request.form['fc_ends'], "25") # We don't know the end yet but we know the end of the first batch
@@ -366,6 +425,7 @@ class TestQuerybuilder(unittest.TestCase):
             custom_query={"collapse_on": "Subject", "fc_len":30, "fc_check":checksum},
             sort_on="created",
             b_size = 5,
+            batch=True,
         )
         self.assertEqual(len(results), 30)
 
