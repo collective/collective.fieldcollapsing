@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import transaction
-from plone import api
 from plone.app.contenttypes.testing import PLONE_APP_CONTENTTYPES_FIXTURE
 from plone.app.robotframework.testing import REMOTE_LIBRARY_BUNDLE_FIXTURE
 from plone.app.testing import applyProfile, TEST_USER_PASSWORD
@@ -21,20 +19,19 @@ def setup_content(portal, num_folders, num_docs_in_folder):
     for i in range(1, num_folders + 1):
         fid = "testfolder-{:02d}".format(i)
         portal.invokeFactory("Folder",
-                                  fid,
-                                  title="Test Folder {:02d}".format(i))
+                             fid,
+                             title="Test Folder {:02d}".format(i))
         test_folder = portal[fid]
         for j in range(1, num_docs_in_folder + 1):
-            id = "testpage-{:02d}-{:02d}".format(i,j)
+            id = "testpage-{:02d}-{:02d}".format(i, j)
             test_folder.invokeFactory(
                 "Document",
                 id,
-                title="Test Page {:02d}-{:02d}".format(i,j))
+                title="Test Page {:02d}-{:02d}".format(i, j))
             test_page = test_folder[id]
             test_page.setSubject(["Lorem", "Folder {}".format(i)])
             test_page.reindexObject()
             portal.portal_workflow.doActionFor(test_page, 'publish')
-
 
 
 class CollectiveFieldcollapsingLayer(PloneSandboxLayer):
@@ -59,12 +56,10 @@ class CollectiveFieldcollapsingLayer(PloneSandboxLayer):
             ('Document',), 'plone_workflow'
         )
 
-
         self.portal = portal
         self['num_folders'] = 15
         self['num_docs_in_folder'] = 5
         setup_content(self.portal, 15, 5)
-
 
 
 def get_browser(layer):
