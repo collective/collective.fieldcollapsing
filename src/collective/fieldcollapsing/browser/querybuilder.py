@@ -94,7 +94,7 @@ class FieldCollapser(object):
 
 class QueryBuilder(BaseQueryBuilder):
 
-    def _get_hint(self, custom_query, name, _type, default=None):
+    def _get_hint_and_remove(self, custom_query, name, _type, default=None):
         if custom_query is not None and name in custom_query:
             value = custom_query[name]
             del custom_query[name]
@@ -120,13 +120,14 @@ class QueryBuilder(BaseQueryBuilder):
         #    import pdb; pdb.set_trace()
 
         # Need to do this here as it removes these from the query before checksum is performed
-        fc_ends = self._get_hint(custom_query, 'fc_ends', str, '')
-        fc_len = self._get_hint(custom_query, "fc_len", int)
+        fc_ends = self._get_hint_and_remove(custom_query, 'fc_ends', str, '')
+        fc_len = self._get_hint_and_remove(custom_query, "fc_len", int)
+        fc_check = self._get_hint_and_remove(custom_query, 'fc_check', str)
 
         checksum = hashlib.md5(
             json.dumps((query, custom_query, sort_on, sort_order, b_size), sort_keys=True)).hexdigest()
 
-        if self._get_hint(custom_query, 'fc_check', str) != checksum:
+        if fc_check != checksum:
             fc_ends = ''
             fc_len = None
 
