@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 import transaction
-from mechanize import LinkNotFoundError
+try:
+    from zope.testbrowser.browser import LinkNotFoundError
+except ImportError:
+    from mechanize import LinkNotFoundError
+
 from collective.fieldcollapsing.testing import \
     COLLECTIVE_FIELDCOLLAPSING_INTEGRATION_TESTING, get_browser, COLLECTIVE_FIELDCOLLAPSING_FUNCTIONAL_TESTING
 from collective.fieldcollapsing.browser.querybuilder import QueryBuilder
