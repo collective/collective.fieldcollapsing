@@ -1,45 +1,12 @@
 # -*- coding: utf-8 -*-
 import hashlib
 import json
-import logging
 from math import floor
-
-import Missing
-
-# from operator import itemgetter
-# from plone import api
-# from plone.app.contentlisting.interfaces import IContentListing
-# from plone.app.querystring import queryparser
-# from plone.app.querystring.interfaces import IParsedQueryIndexModifier
-# from plone.app.querystring.interfaces import IQueryModifier
-# from plone.app.querystring.interfaces import IQuerystringRegistryReader
 from plone import api
 from plone.app.contentlisting.interfaces import IContentListing
 from plone.batching import Batch
-# from plone.registry.interfaces import IRegistry
-# from zope.component import getMultiAdapter, getUtility, getUtilitiesFor
-# from zope.i18n import translate
-# from zope.i18nmessageid import MessageFactory
-# from zope.publisher.browser import BrowserView
-# from AccessControl import getSecurityManager
-# from AccessControl.unauthorized import Unauthorized
-# from AccessControl.ZopeGuards import guarded_getitem
-# from Products.CMFCore.utils import getToolByName
-from ZTUtils import LazyFilter, make_query
+from ZTUtils import LazyFilter
 from plone.app.querystring.querybuilder import QueryBuilder as BaseQueryBuilder
-from plone.batching.browser import BatchView
-
-from collective.fieldcollapsing import _
-from collective.fieldcollapsing import logger
-
-
-try:
-    from ZTUtils.Lazy import LazyCat
-    from ZTUtils.Lazy import LazyMap
-except ImportError:
-    # bbb import for Zope2
-    from Products.ZCatalog.Lazy import LazyCat
-    from Products.ZCatalog.Lazy import LazyMap
 
 INDEX2MERGE_TYPE = dict(
     KeywordIndex=tuple,
@@ -48,10 +15,23 @@ INDEX2MERGE_TYPE = dict(
     ZCTextIndex=unicode
 )
 
+
+def conv(value, _type):
+    if not value:
+        return _type()
+    elif type(value) == _type:
+        return value
+
+    if _type in [list, tuple] and type(value) not in [list, tuple]:
+        return _type([value])
+    else:
+        return _type(value)
+
+
 class FieldCollapser(object):
-  
-    def __init__(self, collapse_on=[], merge_fields=[]):
-        self.seen_before = dict()  #TODO: should be (field_value,field_value,..) -> brain
+
+    def __init__(self, collapse_on=(), merge_fields=()):
+        self.seen_before = dict()  # TODO: should be (field_value,field_value,..) -> brain
         self.collapse_on = collapse_on
         self.merge_fields = merge_fields
 
@@ -65,35 +45,21 @@ class FieldCollapser(object):
                 continue
             merge_type[field] = INDEX2MERGE_TYPE.get(index.meta_type, None)
 
-
     def collapse(self, brain):
         key = ()
         for metafield in self.collapse_on:
             if metafield == '__PARENT__':
-                base_path = path_ = brain.getPath()
+                path_ = brain.getPath()
                 path_sep = path_.split("/")
                 if brain.Type != 'Plone Site':
                     key += ("/".join(path_sep[:-1]), )
             else:
                 field_value = getattr(brain, metafield, None)
-                #if field_value is Missing.Value:
-                #    return True
                 key += (field_value,)
-
-        def conv(value, _type):
-            if not value:
-                return _type()
-            elif type(value) == _type:
-                return value
-
-            if _type in [list,tuple] and type(value) not in [list,tuple]:
-                return _type([value])
-            else:
-                return _type(value)
 
         if key not in self.seen_before:
             self.seen_before[key] = brain
-            first = object() # so first is None
+            first = object()  # so first is None
             keep = True
         else:
             first = self.seen_before[key]
@@ -107,7 +73,7 @@ class FieldCollapser(object):
             if not value:
                 continue
 
-            if _type == None:
+            if _type is None:
                 continue
             elif _type in (tuple, list):
                 merged += tuple(i for i in tuple(value) if i not in merged)
@@ -119,7 +85,7 @@ class FieldCollapser(object):
             elif _type in [int, float]:
                 merged += value
             else:
-                #TODO: how to merge dates?
+                # TODO: how to merge dates?
                 continue
 
             setattr(self.seen_before[key], metafield, merged)
@@ -128,11 +94,19 @@ class FieldCollapser(object):
 
 class QueryBuilder(BaseQueryBuilder):
 
+    def _get_hint(self, custom_query, name, _type, default=None):
+        if custom_query is not None and name in custom_query:
+            value = custom_query[name]
+            del custom_query[name]
+        else:
+            value = self.request.get(name, default)
+        if value is not None:
+            return _type(value)
+
     def _makequery(self, query=None, batch=False, b_start=0, b_size=30,
                    sort_on=None, sort_order=None, limit=0, brains=False,
                    custom_query=None):
         """Parse the (form)query and return using multi-adapter"""
-
 
         # Catalog assumes we want to limit the results to b_start+b_size. We would like to limit the
         # search too however we don't for sure what to limit it to since we need an unknown number
@@ -140,44 +114,34 @@ class QueryBuilder(BaseQueryBuilder):
         # We will use a combination of hints to guess
         # - data about how much filtered in pages the user has click on before
         # - the final length if the user clicked on the last page
-        # - a look ahead param on the collection representing the max number of unfiltered results to make up a filtered page
-        #if b_start >=10:
+        # - a look ahead param on the collection representing the max number of unfiltered results to make up a
+        # filtered page
+        # if b_start >=10:
         #    import pdb; pdb.set_trace()
 
-        def get_hint(name, _type, default=None):
-
-            if custom_query is not None and name in custom_query:
-                value = custom_query[name]
-                del custom_query[name]
-            else:
-                value = self.request.get(name, default)
-            if value is not None:
-                return _type(value)
-
         # Need to do this here as it removes these from the query before checksum is performed
-        fc_ends = get_hint('fc_ends', str, '')
-        fc_len = get_hint("fc_len", int)
-        fc_check = get_hint('fc_check', str)
+        fc_ends = self._get_hint(custom_query, 'fc_ends', str, '')
+        fc_len = self._get_hint(custom_query, "fc_len", int)
 
-        checksum = hashlib.md5( json.dumps( (query, custom_query, sort_on, sort_order, b_size) , sort_keys=True) ).hexdigest()
+        checksum = hashlib.md5(
+            json.dumps((query, custom_query, sort_on, sort_order, b_size), sort_keys=True)).hexdigest()
 
-        if fc_check != checksum:
+        if self._get_hint(custom_query, 'fc_check', str) != checksum:
             fc_ends = ''
             fc_len = None
 
         fc_ends = enumerate([int(i) for i in fc_ends.split(',') if i])
-        fc_ends = [(page, i) for page, i in fc_ends if page*b_size <= b_start+b_size]
+        fc_ends = [(page, i) for page, i in fc_ends if page * b_size <= b_start + b_size]
         if not fc_ends:
-            nearest_page, nearest_end = 0,0
+            nearest_page, nearest_end = 0, 0
         else:
             nearest_page, nearest_end = max(fc_ends)
 
         max_unfiltered_pagesize = getattr(self.context, 'max_unfiltered_page_size', 1000)
 
-        additional_pages = int(floor(float(b_start)/b_size - nearest_page))
+        additional_pages = int(floor(float(b_start) / b_size - nearest_page))
         safe_start = nearest_end
         safe_limit = additional_pages * max_unfiltered_pagesize
-
 
         results = super(QueryBuilder, self)._makequery(
             query,
@@ -201,51 +165,34 @@ class QueryBuilder(BaseQueryBuilder):
             del custom_query['collapse_on']
         merge_fields = getattr(self.context, 'merge_fields', None)
         if merge_fields is None and custom_query is not None:
-            merge_fields = custom_query.get('merge_fields',set())
+            merge_fields = custom_query.get('merge_fields', set())
         elif merge_fields is None:
             merge_fields = set()
-
 
         if collapse_on:
 
             fc = FieldCollapser(collapse_on=collapse_on, merge_fields=merge_fields)
 
-            unfiltered = results
-            results = LazyFilterLen(unfiltered, test=fc.collapse)
-            if fc_len is not None:
-                results.actual_result_count = results.fc_len = int(fc_len)
+            results = LazyFilterLen(results, test=fc.collapse, fc_len=fc_len)
 
-            # Work out unfiltered index up until the end of the current page
-            unfiltered_ends = []
-            index = b_size
-            while index < b_start+b_size+1:
-                try:
-                    results[index]
-                except IndexError:
-                    self.request.form['fc_len'] = len(results)
-                    break
-                else:
-                    if hasattr(results, '_eindex'):
-                        unfiltered_ends.append(results._eindex)
-                index += b_size
-
-            if len(unfiltered_ends) > len(fc_ends):
-                # Put this into request so it ends up the batch links
-                self.request.form['fc_ends'] = ','.join([str(i) for i in unfiltered_ends])
-
-            # This ensures if fc_len or fc_ends are used after query is updated then we don't use these hints
-            self.request.form['fc_check'] = checksum
-
-
-            # This is a bit of hack. for collectionfilter they iterate teh results to work out all teh values
-            # If we are using merging then the merge doesn't really work until you get to the end. So either
-            # collectionfilter needs to iterate first then do the count or we need iterate first in some cases
-            # if we iterate first then do we use the max_unfiltered_pagesize as the hint on how much to look
-            # ahead?
-            # In this case we will assume if the Batch=False then we should iterate first to ensure merge is correct
-            # we will do this even if there is no merge to ensure the len of the results is also accurate
             if not batch:
+                # This is a bit of hack. for collectionfilter they iterate teh results to work out all teh values
+                # If we are using merging then the merge doesn't really work until you get to the end. So either
+                # collectionfilter needs to iterate first then do the count or we need iterate first in some cases
+                # if we iterate first then do we use the max_unfiltered_pagesize as the hint on how much to look
+                # ahead?
+                # In this case we will assume if the Batch=False then we should iterate first to ensure merge is correct
+                # we will do this even if there is no merge to ensure the len of the results is also accurate
                 list(results)
+            else:
+                # Put this into request so it ends up the batch links
+                self.request.form['fc_ends'] = ','.join([str(i) for i in results.fc_ends(b_start, b_size)])
+                # we might have hit the end
+                if getattr(results, 'fc_len', None) is not None:
+                    self.request.form['fc_len'] = results.fc_len
+
+                # This ensures if fc_len or fc_ends are used after query is updated then we don't use these hints
+                self.request.form['fc_check'] = checksum
 
         if not brains:
             results = IContentListing(results)
@@ -254,24 +201,43 @@ class QueryBuilder(BaseQueryBuilder):
         return results
 
 
-
 # batching seems to call len and that ends up iterating over the whole filter
-# Also batching has this weird optimisation that if the actual is not the same as len it assumes the seq is just that page
-# and it repeats items
+# Also batching has this weird optimisation that if the actual is not the same as len it assumes the seq is just that
+# page and it repeats items
 class LazyFilterLen(LazyFilter):
+    def __init__(self, seq, test=None, skip=None, fc_len=None):
+        super(LazyFilterLen, self).__init__(seq, test, skip)
+        if fc_len is not None:
+            self.actual_result_count = self.fc_len = int(fc_len)
+
     def __len__(self):
         # There are 3 modes.
         # - _eindex exists>=0 - halfway through filtering
         # - _eindex doesn't exist -  filtering finished to the end
         # - fc_len gives a hint about the length
 
-
         if not hasattr(self, '_eindex'):
             self.actual_result_count = len(self._data)
         else:
-            if hasattr(self, 'fc_len') and (self._eindex+1) < self.fc_len:
+            if hasattr(self, 'fc_len') and (self._eindex + 1) < self.fc_len:
                 return self.fc_len
             else:
                 self.actual_result_count = self._seq.actual_result_count - (self._eindex + 1) + len(self._data)
         return self.actual_result_count
 
+    def fc_ends(self, b_start, b_size):
+
+        # Work out unfiltered index for each page up until the end of the current page
+        unfiltered_ends = []
+        index = b_size
+        while index < b_start + b_size + 1:
+            try:
+                self[index]
+            except IndexError:
+                self.fc_len = len(self)
+                break
+            else:
+                if hasattr(self, '_eindex'):
+                    unfiltered_ends.append(self._eindex)
+            index += b_size
+        return unfiltered_ends
