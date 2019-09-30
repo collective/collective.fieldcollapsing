@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import hashlib
 import json
-from itertools import izip
 from math import floor
 from plone import api
 from plone.app.contentlisting.interfaces import IContentListing
@@ -9,6 +8,7 @@ from plone.batching import Batch
 from ZTUtils import LazyFilter
 from plone.app.querystring.querybuilder import QueryBuilder as BaseQueryBuilder
 import six
+from six.moves import zip
 
 INDEX2MERGE_TYPE = dict(
     KeywordIndex=tuple,
@@ -39,7 +39,7 @@ class FieldCollapser(object):
 
         self.merge_type = merge_type = {}
         catalog = api.portal.get_tool('portal_catalog')
-        indexes = dict(izip(catalog.indexes(), catalog.getIndexObjects()))
+        indexes = dict(zip(catalog.indexes(), catalog.getIndexObjects()))
         for field in merge_fields:
             index = indexes.get(field, None)
             if index is None:
