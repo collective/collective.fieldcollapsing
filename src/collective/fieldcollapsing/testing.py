@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
+from Products.CMFPlone.interfaces import INavigationSchema
 from plone.app.contenttypes.testing import PLONE_APP_CONTENTTYPES_FIXTURE
 from plone.app.robotframework.testing import REMOTE_LIBRARY_BUNDLE_FIXTURE
 from plone.app.testing import applyProfile, TEST_USER_PASSWORD
@@ -9,10 +11,12 @@ from plone.app.testing import IntegrationTesting
 from plone.app.testing import PloneSandboxLayer
 from plone.app.testing import TEST_USER_ID
 from plone.app.testing import TEST_USER_NAME
+from plone.registry.interfaces import IRegistry
 from plone.testing import z2
-
+from zope.component import getUtility
 import collective.fieldcollapsing
 from plone.testing.z2 import Browser
+from six.moves import range
 
 
 def setup_content(portal, num_folders, num_docs_in_folder):
@@ -61,6 +65,15 @@ class CollectiveFieldcollapsingLayer(PloneSandboxLayer):
         self['num_docs_in_folder'] = 5
         setup_content(self.portal, 15, 5)
 
+        # Get rid of navigation so it doesn't intefer with browser tests
+        registry = getUtility(IRegistry)
+        navigation_settings = registry.forInterface(
+            INavigationSchema,
+            prefix="plone",
+            check=False
+        )
+        navigation_settings.generate_tabs = False
+
 
 def get_browser(layer):
     # api.user.create(
@@ -76,7 +89,7 @@ def get_browser(layer):
     def raising(self, info):
         import traceback
         traceback.print_tb(info[2])
-        print info[1]  # noqa: T001
+        print(info[1])  # noqa: T001
 
     from Products.SiteErrorLog.SiteErrorLog import SiteErrorLog
     SiteErrorLog.raising = raising

@@ -14,8 +14,8 @@ matrix:
       env: PLONE_VERSION=5.1.x
     - python: "2.7"
       env: PLONE_VERSION=5.2.x
-    - python: "3.6"
-      env: PLONE_VERSION=5.2.x
+#    - python: "3.6"
+#      env: PLONE_VERSION=5.2.x
     - python: "3.7"
       env: PLONE_VERSION=5.2.x
       dist: xenial
@@ -25,6 +25,7 @@ cache:
   directories:
   - eggs
   - downloads
+  - $HOME/buildout-cache
 before_install:
 # install chrome webdriver
   - mkdir webdriver;

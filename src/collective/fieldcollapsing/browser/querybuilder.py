@@ -7,12 +7,14 @@ from plone.app.contentlisting.interfaces import IContentListing
 from plone.batching import Batch
 from ZTUtils import LazyFilter
 from plone.app.querystring.querybuilder import QueryBuilder as BaseQueryBuilder
+import six
+from six.moves import zip
 
 INDEX2MERGE_TYPE = dict(
     KeywordIndex=tuple,
     FieldIndex=tuple,
     TopicIndex=tuple,
-    ZCTextIndex=unicode
+    ZCTextIndex=six.text_type
 )
 
 
@@ -77,9 +79,9 @@ class FieldCollapser(object):
                 continue
             elif _type in (tuple, list):
                 merged += tuple(i for i in tuple(value) if i not in merged)
-            elif _type == unicode:
+            elif _type == six.text_type:
                 # TODO: actually makes more sense to do this based on index type
-                merged = u" ".join([merged, unicode(value)]).strip()
+                merged = u" ".join([merged, six.text_type(value)]).strip()
             elif _type == dict:
                 merged.update(dict(value))
             elif _type in [int, float]:
@@ -125,7 +127,7 @@ class QueryBuilder(BaseQueryBuilder):
         fc_check = self._get_hint_and_remove(custom_query, 'fc_check', str)
 
         checksum = hashlib.md5(
-            json.dumps((query, custom_query, sort_on, sort_order, b_size), sort_keys=True)).hexdigest()
+            json.dumps((query, custom_query, sort_on, sort_order, b_size), sort_keys=True).encode('utf-8')).hexdigest()
 
         if fc_check != checksum:
             fc_ends = ''
@@ -161,7 +163,7 @@ class QueryBuilder(BaseQueryBuilder):
             custom_collapse_on = custom_query.get('collapse_on')
             if hasattr(custom_collapse_on, '__iter__'):
                 collapse_on.update(custom_collapse_on)
-            elif type(custom_collapse_on) in [str, unicode]:
+            elif type(custom_collapse_on) in [str, six.text_type]:
                 collapse_on.add(custom_collapse_on)
             del custom_query['collapse_on']
         merge_fields = getattr(self.context, 'merge_fields', None)

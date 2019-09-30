@@ -23,6 +23,7 @@ setup(
         "Framework :: Plone",
         "Framework :: Plone :: 5.0",
         "Framework :: Plone :: 5.1",
+        "Framework :: Plone :: 5.2",
         "Programming Language :: Python",
         "Programming Language :: Python :: 2.7",
         "Operating System :: OS Independent",
@@ -45,6 +46,7 @@ setup(
         'setuptools',
         'z3c.jbot',
         'Products.GenericSetup',
+        'six'
     ],
     extras_require={
         'test': [
