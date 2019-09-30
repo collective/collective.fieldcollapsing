@@ -127,7 +127,7 @@ class QueryBuilder(BaseQueryBuilder):
         fc_check = self._get_hint_and_remove(custom_query, 'fc_check', str)
 
         checksum = hashlib.md5(
-            json.dumps((query, custom_query, sort_on, sort_order, b_size), sort_keys=True)).hexdigest()
+            json.dumps((query, custom_query, sort_on, sort_order, b_size), sort_keys=True).encode('utf-8')).hexdigest()
 
         if fc_check != checksum:
             fc_ends = ''
