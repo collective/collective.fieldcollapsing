@@ -46,6 +46,7 @@ setup(
         'setuptools',
         'z3c.jbot',
         'Products.GenericSetup',
+        'six'
     ],
     extras_require={
         'test': [

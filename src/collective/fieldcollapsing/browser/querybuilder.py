@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 import hashlib
 import json
+from itertools import izip
 from math import floor
 from plone import api
 from plone.app.contentlisting.interfaces import IContentListing
 from plone.batching import Batch
 from ZTUtils import LazyFilter
 from plone.app.querystring.querybuilder import QueryBuilder as BaseQueryBuilder
+import six
 
 INDEX2MERGE_TYPE = dict(
     KeywordIndex=tuple,
     FieldIndex=tuple,
     TopicIndex=tuple,
-    ZCTextIndex=unicode
+    ZCTextIndex=six.text_type
 )
 
 
@@ -37,7 +39,7 @@ class FieldCollapser(object):
 
         self.merge_type = merge_type = {}
         catalog = api.portal.get_tool('portal_catalog')
-        indexes = dict(zip(catalog.indexes(), catalog.getIndexObjects()))
+        indexes = dict(izip(catalog.indexes(), catalog.getIndexObjects()))
         for field in merge_fields:
             index = indexes.get(field, None)
             if index is None:
@@ -77,9 +79,9 @@ class FieldCollapser(object):
                 continue
             elif _type in (tuple, list):
                 merged += tuple(i for i in tuple(value) if i not in merged)
-            elif _type == unicode:
+            elif _type == six.text_type:
                 # TODO: actually makes more sense to do this based on index type
-                merged = u" ".join([merged, unicode(value)]).strip()
+                merged = u" ".join([merged, six.text_type(value)]).strip()
             elif _type == dict:
                 merged.update(dict(value))
             elif _type in [int, float]:
@@ -161,7 +163,7 @@ class QueryBuilder(BaseQueryBuilder):
             custom_collapse_on = custom_query.get('collapse_on')
             if hasattr(custom_collapse_on, '__iter__'):
                 collapse_on.update(custom_collapse_on)
-            elif type(custom_collapse_on) in [str, unicode]:
+            elif type(custom_collapse_on) in [str, six.text_type]:
                 collapse_on.add(custom_collapse_on)
             del custom_query['collapse_on']
         merge_fields = getattr(self.context, 'merge_fields', None)

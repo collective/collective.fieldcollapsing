@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
 from Products.CMFPlone.interfaces import INavigationSchema
 from plone.app.contenttypes.testing import PLONE_APP_CONTENTTYPES_FIXTURE
 from plone.app.robotframework.testing import REMOTE_LIBRARY_BUNDLE_FIXTURE
@@ -13,9 +14,9 @@ from plone.app.testing import TEST_USER_NAME
 from plone.registry.interfaces import IRegistry
 from plone.testing import z2
 from zope.component import getUtility
-
 import collective.fieldcollapsing
 from plone.testing.z2 import Browser
+from six.moves import range
 
 
 def setup_content(portal, num_folders, num_docs_in_folder):
